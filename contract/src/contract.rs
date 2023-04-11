@@ -7,10 +7,10 @@ use cw20::Cw20ReceiveMsg;
 
 use crate::{
     actions::{
-        execute::withdraw,
+        execute::{claim, swap_and_claim, unbond, update_config, update_tokens, withdraw},
         instantiate::init,
         migrate::migrate_contract,
-        query::query_price,
+        query::{query_balances, query_price, query_provider, query_tokens},
         receive::{deposit, swap},
     },
     error::ContractError,
@@ -41,7 +41,23 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive(deps, env, info, msg),
-        ExecuteMsg::Withdraw { token, amount } => withdraw(deps, env, info, token, amount),
+        ExecuteMsg::UpdateConfig { admin, swap_fee } => {
+            update_config(deps, env, info, admin, swap_fee)
+        }
+        // TODO
+        ExecuteMsg::UpdateTokens {
+            symbol,
+            token_addr,
+            price_feed_id_str,
+        } => update_tokens(deps, env, info, symbol, token_addr, price_feed_id_str),
+        // TODO
+        ExecuteMsg::Unbond { symbol, amount } => unbond(deps, env, info, symbol, amount),
+        // TODO
+        ExecuteMsg::Withdraw { symbol, amount } => withdraw(deps, env, info, symbol, amount),
+        // TODO
+        ExecuteMsg::Claim {} => claim(deps, env, info),
+        // TODO
+        ExecuteMsg::SwapAndClaim { symbol } => swap_and_claim(deps, env, info, symbol),
     }
 }
 
@@ -59,8 +75,10 @@ pub fn receive(
     } = wrapper;
 
     match from_binary(&msg)? {
+        // TODO
         ReceiveMsg::Deposit {} => deposit(deps, env, info, sender, amount),
-        ReceiveMsg::Swap {} => swap(deps, env, info, sender, amount),
+        // TODO
+        ReceiveMsg::Swap { symbol_out } => swap(deps, env, info, sender, amount, symbol_out),
     }
 }
 
@@ -68,6 +86,12 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        // TODO
+        QueryMsg::QueryProvider { address } => query_provider(deps, env, address),
+        // TODO
+        QueryMsg::QueryTokens {} => query_tokens(deps, env),
+        // TODO
+        QueryMsg::QueryBalances {} => query_balances(deps, env),
         QueryMsg::QueryPrice { price_feed_id_str } => query_price(deps, env, price_feed_id_str),
     }
 }

@@ -1,18 +1,24 @@
-use cosmwasm_std::{to_binary, Addr, Empty, StdError, Uint128};
+use cosmwasm_std::{to_binary, Addr, Decimal, Empty, StdError, Uint128};
 
 use cw20::Cw20Coin;
 
 use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 
+use pyth_sdk_cw::PriceFeedResponse;
+
 use crate::{
     contract::{execute, instantiate, query},
-    messages::{execute::ExecuteMsg, receive::ReceiveMsg},
+    messages::{execute::ExecuteMsg, query::QueryMsg, receive::ReceiveMsg, response::Balance},
+    state::{Asset, Token},
 };
 
 pub const ADDR_ADMIN_INJ: &str = "inj1amp7dv5fvjyx95ea4grld6jmu9v207awtefwce";
 pub const ADDR_ALICE_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
 
 pub const SYMBOL_ATOM: &str = "ATOM";
+
+pub const PRICE_FEED_ID_STR_ATOM: &str =
+    "0x61226d39beea19d334f17c2febce27e12646d84675924ebb02b9cdaea68727e3";
 
 // pub const TEST_CONTRACT_ADDR: &str = "inj14hj2tavq8fpesdwxxcu44rty3hh90vhujaxlnz";
 
@@ -107,6 +113,111 @@ impl Project {
     }
 
     #[track_caller]
+    pub fn update_config(
+        &mut self,
+        sender: &str,
+        admin: Option<String>,
+        swap_fee: Option<Decimal>,
+    ) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::UpdateConfig { admin, swap_fee },
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn update_tokens(
+        &mut self,
+        sender: &str,
+        symbol: &str,
+        token_addr: &str,
+        price_feed_id_str: &str,
+    ) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::UpdateTokens {
+                    symbol: symbol.to_string(),
+                    token_addr: token_addr.to_string(),
+                    price_feed_id_str: price_feed_id_str.to_string(),
+                },
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn unbond(
+        &mut self,
+        sender: &str,
+        symbol: &str,
+        amount: Uint128,
+    ) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::Unbond {
+                    symbol: symbol.to_string(),
+                    amount,
+                },
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn withdraw(
+        &mut self,
+        sender: &str,
+        symbol: &str,
+        amount: Uint128,
+    ) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::Withdraw {
+                    symbol: symbol.to_string(),
+                    amount,
+                },
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn claim(&mut self, sender: &str) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::Claim {},
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn swap_and_claim(&mut self, sender: &str, symbol: &str) -> Result<AppResponse, StdError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                self.address.clone(),
+                &ExecuteMsg::SwapAndClaim {
+                    symbol: symbol.to_string(),
+                },
+                &[],
+            )
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
     pub fn deposit(
         &mut self,
         sender: &str,
@@ -125,23 +236,60 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn withdraw(
+    pub fn swap(
         &mut self,
         sender: &str,
-        token: &str,
+        token: Addr,
         amount: Uint128,
+        symbol_out: &str,
     ) -> Result<AppResponse, StdError> {
+        let msg = cw20::Cw20ExecuteMsg::Send {
+            contract: self.address.to_string(),
+            amount,
+            msg: to_binary(&ReceiveMsg::Swap {
+                symbol_out: symbol_out.to_string(),
+            })?,
+        };
+
         self.app
-            .execute_contract(
-                Addr::unchecked(sender.to_string()),
-                self.address.clone(),
-                &ExecuteMsg::Withdraw {
-                    token: token.to_string(),
-                    amount,
-                },
-                &[],
-            )
+            .execute_contract(Addr::unchecked(sender.to_string()), token, &msg, &[])
             .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn query_provider(&self, address: &str) -> Result<Vec<Asset>, StdError> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryProvider {
+                address: address.to_string(),
+            },
+        )
+    }
+
+    #[track_caller]
+    pub fn query_tokens(&self) -> Result<Vec<Token>, StdError> {
+        self.app
+            .wrap()
+            .query_wasm_smart(self.address.clone(), &QueryMsg::QueryTokens {})
+    }
+
+    #[track_caller]
+    pub fn query_balances(&self) -> Result<Vec<Balance>, StdError> {
+        self.app
+            .wrap()
+            .query_wasm_smart(self.address.clone(), &QueryMsg::QueryBalances {})
+    }
+
+    // pyth test example
+    // https://github.com/pyth-network/pyth-crosschain/blob/main/target_chains/cosmwasm/examples/cw-contract/src/contract.rs
+    #[track_caller]
+    pub fn query_price(&self, price_feed_id_str: &str) -> Result<PriceFeedResponse, StdError> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryPrice {
+                price_feed_id_str: price_feed_id_str.to_string(),
+            },
+        )
     }
 
     // pub fn get_attrs(res: &AppResponse) -> Vec<Attribute> {
@@ -161,20 +309,5 @@ impl Project {
     //     let attr = attrs.iter().find(|x| x.key == *key).unwrap();
 
     //     attr.to_owned().value
-    // }
-
-    // pyth test example
-    // https://github.com/pyth-network/pyth-crosschain/blob/main/target_chains/cosmwasm/examples/cw-contract/src/contract.rs
-    // #[track_caller]
-    // pub fn query_price_feed_pyth(
-    //     &self,
-    //     price_feed_id_str: &str,
-    // ) -> Result<QueryValueResponse, StdError> {
-    //     self.app.wrap().query_wasm_smart(
-    //         self.address.clone(),
-    //         &QueryMsg::QueryPriceFeedPyth {
-    //             price_feed_id_str: price_feed_id_str.to_string(),
-    //         },
-    //     )
     // }
 }

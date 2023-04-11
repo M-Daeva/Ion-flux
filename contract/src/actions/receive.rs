@@ -19,6 +19,7 @@ pub fn swap(
     _info: MessageInfo,
     _sender: String,
     _amount: Uint128,
+    _symbol_out: String,
 ) -> Result<Response, ContractError> {
     Ok(Response::new().add_attributes(vec![("action", "swap")]))
 }

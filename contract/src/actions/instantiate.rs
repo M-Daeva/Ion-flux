@@ -3,9 +3,10 @@ use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
 use cw2::set_contract_version;
 
 use crate::{
+    actions::math::str_to_dec,
     error::ContractError,
     messages::instantiate::InstantiateMsg,
-    state::{Pyth, PYTH},
+    state::{Config, Pyth, CONFIG, PYTH},
 };
 
 const CONTRACT_NAME: &str = "crates.io:ion-flux";
@@ -13,12 +14,22 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const PYTH_CONTRACT_ADDR: &str = "inj1z60tg0tekdzcasenhuuwq3htjcd5slmgf7gpez";
 
+const SWAP_FEE: &str = "0.003";
+
 pub fn init(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    CONFIG.save(
+        deps.storage,
+        &Config {
+            admin: info.sender,
+            swap_fee: str_to_dec(SWAP_FEE),
+        },
+    )?;
+
     PYTH.save(
         deps.storage,
         &Pyth {

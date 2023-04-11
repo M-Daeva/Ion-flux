@@ -4,6 +4,18 @@ use pyth_sdk_cw::{query_price_feed, PriceIdentifier};
 
 use crate::state::{Pyth, PYTH};
 
+pub fn query_provider(deps: Deps, _env: Env, address: String) -> StdResult<Binary> {
+    unimplemented!()
+}
+
+pub fn query_tokens(deps: Deps, _env: Env) -> StdResult<Binary> {
+    unimplemented!()
+}
+
+pub fn query_balances(deps: Deps, _env: Env) -> StdResult<Binary> {
+    unimplemented!()
+}
+
 pub fn query_price(deps: Deps, _env: Env, price_feed_id_str: String) -> StdResult<Binary> {
     let price_feed_id_hex = &price_feed_id_str[2..];
 

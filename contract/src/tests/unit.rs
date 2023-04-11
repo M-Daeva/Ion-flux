@@ -2,7 +2,9 @@ use cosmwasm_std::Uint128;
 
 use cw20::Cw20Coin;
 
-use crate::tests::helpers::{Project, ADDR_ALICE_INJ, SYMBOL_ATOM};
+use crate::tests::helpers::{
+    Project, ADDR_ADMIN_INJ, ADDR_ALICE_INJ, PRICE_FEED_ID_STR_ATOM, SYMBOL_ATOM,
+};
 
 #[test]
 fn create_cw20() {
@@ -30,6 +32,15 @@ fn deposit() {
     let contract_address = prj.address.clone();
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
+
+    prj.update_tokens(
+        ADDR_ADMIN_INJ,
+        SYMBOL_ATOM,
+        token.as_str(),
+        PRICE_FEED_ID_STR_ATOM,
+    )
+    .unwrap();
+
     prj.deposit(ADDR_ALICE_INJ, token.clone(), mint_amount.amount)
         .unwrap();
     let balance_contract = prj.get_cw20_balance(token.clone(), contract_address);
@@ -49,7 +60,16 @@ fn withdraw() {
         amount: Uint128::from(5u128),
     };
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
-    prj.withdraw(ADDR_ALICE_INJ, token.as_str(), mint_amount.amount)
+
+    prj.update_tokens(
+        ADDR_ADMIN_INJ,
+        SYMBOL_ATOM,
+        token.as_str(),
+        PRICE_FEED_ID_STR_ATOM,
+    )
+    .unwrap();
+
+    prj.withdraw(ADDR_ALICE_INJ, SYMBOL_ATOM, mint_amount.amount)
         .unwrap();
     let balance_contract = prj.get_cw20_balance(token.clone(), contract_address);
     let balance_alice = prj.get_cw20_balance(token, ADDR_ALICE_INJ);
