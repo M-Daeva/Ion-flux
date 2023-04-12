@@ -41,9 +41,10 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive(deps, env, info, msg),
-        ExecuteMsg::UpdateConfig { admin, swap_fee } => {
-            update_config(deps, env, info, admin, swap_fee)
-        }
+        ExecuteMsg::UpdateConfig {
+            admin,
+            swap_fee_rate,
+        } => update_config(deps, env, info, admin, swap_fee_rate),
         // TODO
         ExecuteMsg::UpdateTokens {
             symbol,

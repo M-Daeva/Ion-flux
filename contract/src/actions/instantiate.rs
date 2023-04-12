@@ -14,7 +14,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const PYTH_CONTRACT_ADDR: &str = "inj1z60tg0tekdzcasenhuuwq3htjcd5slmgf7gpez";
 
-const SWAP_FEE: &str = "0.003";
+const SWAP_FEE_RATE: &str = "0.003";
 
 pub fn init(
     deps: DepsMut,
@@ -26,7 +26,7 @@ pub fn init(
         deps.storage,
         &Config {
             admin: info.sender,
-            swap_fee: str_to_dec(SWAP_FEE),
+            swap_fee_rate: str_to_dec(SWAP_FEE_RATE),
         },
     )?;
 

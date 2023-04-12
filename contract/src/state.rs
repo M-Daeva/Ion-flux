@@ -7,7 +7,7 @@ pub const CONFIG: Item<Config> = Item::new("config");
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
-    pub swap_fee: Decimal,
+    pub swap_fee_rate: Decimal,
 }
 
 // key - symbol: &str
@@ -39,4 +39,17 @@ pub const PYTH: Item<Pyth> = Item::new("pyth");
 #[cw_serde]
 pub struct Pyth {
     pub pyth_contract_addr: Addr,
+}
+
+#[cw_serde]
+pub struct Sample {
+    pub value: Uint128,
+    pub timestamp: Uint128,
+}
+
+// TODO: use Timestamp
+impl Sample {
+    pub fn new(value: Uint128, timestamp: Uint128) -> Self {
+        Sample { value, timestamp }
+    }
 }

@@ -9,7 +9,7 @@ pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
     UpdateConfig {
         admin: Option<String>,
-        swap_fee: Option<Decimal>,
+        swap_fee_rate: Option<Decimal>,
     },
     UpdateTokens {
         symbol: String,

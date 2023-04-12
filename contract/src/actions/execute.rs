@@ -13,7 +13,7 @@ pub fn update_config(
     _env: Env,
     info: MessageInfo,
     admin: Option<String>,
-    swap_fee: Option<Decimal>,
+    swap_fee_rate: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     CONFIG.update(
         deps.storage,
@@ -29,8 +29,11 @@ pub fn update_config(
                 };
             }
 
-            if let Some(swap_fee) = swap_fee {
-                config = Config { swap_fee, ..config };
+            if let Some(swap_fee_rate) = swap_fee_rate {
+                config = Config {
+                    swap_fee_rate,
+                    ..config
+                };
             }
 
             Ok(config)

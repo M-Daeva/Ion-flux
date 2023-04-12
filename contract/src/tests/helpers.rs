@@ -117,13 +117,16 @@ impl Project {
         &mut self,
         sender: &str,
         admin: Option<String>,
-        swap_fee: Option<Decimal>,
+        swap_fee_rate: Option<Decimal>,
     ) -> Result<AppResponse, StdError> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
-                &ExecuteMsg::UpdateConfig { admin, swap_fee },
+                &ExecuteMsg::UpdateConfig {
+                    admin,
+                    swap_fee_rate,
+                },
                 &[],
             )
             .map_err(|err| err.downcast().unwrap())
