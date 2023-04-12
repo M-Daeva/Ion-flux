@@ -47,18 +47,20 @@ pub fn execute(
         } => update_config(deps, env, info, admin, swap_fee_rate),
         // TODO
         ExecuteMsg::UpdateTokens {
-            symbol,
             token_addr,
+            symbol,
             price_feed_id_str,
-        } => update_tokens(deps, env, info, symbol, token_addr, price_feed_id_str),
+        } => update_tokens(deps, env, info, token_addr, symbol, price_feed_id_str),
         // TODO
-        ExecuteMsg::Unbond { symbol, amount } => unbond(deps, env, info, symbol, amount),
+        ExecuteMsg::Unbond { token_addr, amount } => unbond(deps, env, info, token_addr, amount),
         // TODO
-        ExecuteMsg::Withdraw { symbol, amount } => withdraw(deps, env, info, symbol, amount),
+        ExecuteMsg::Withdraw { token_addr, amount } => {
+            withdraw(deps, env, info, token_addr, amount)
+        }
         // TODO
         ExecuteMsg::Claim {} => claim(deps, env, info),
         // TODO
-        ExecuteMsg::SwapAndClaim { symbol } => swap_and_claim(deps, env, info, symbol),
+        ExecuteMsg::SwapAndClaim { token_addr } => swap_and_claim(deps, env, info, token_addr),
     }
 }
 
@@ -79,7 +81,9 @@ pub fn receive(
         // TODO
         ReceiveMsg::Deposit {} => deposit(deps, env, info, sender, amount),
         // TODO
-        ReceiveMsg::Swap { symbol_out } => swap(deps, env, info, sender, amount, symbol_out),
+        ReceiveMsg::Swap { token_addr_out } => {
+            swap(deps, env, info, sender, amount, token_addr_out)
+        }
     }
 }
 

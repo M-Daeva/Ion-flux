@@ -39,14 +39,12 @@ pub fn u128_vec_to_uint128_vec(u128_vec: Vec<u128>) -> Vec<Uint128> {
 
 // linear interpolation for linear function y(t), t in range t1...t2, y in range y1...y2
 pub fn interpolate(y1: Uint128, y2: Uint128, t1: Uint128, t2: Uint128, t: Uint128) -> Uint128 {
-    let y = y1 + (y2 - y1) * (t - t1) / (t2 - t1);
-    y
+    y1 + (y2 - y1) * (t - t1) / (t2 - t1)
 }
 
 // area under line y(t), t in range t1...t2, y in range y1...y2
 pub fn calc_area(y1: Uint128, y2: Uint128, t1: Uint128, t2: Uint128) -> Uint128 {
-    let a = ((y2 + y1) * (t2 - t1)).div(Uint128::from(2_u128));
-    a
+    ((y2 + y1) * (t2 - t1)).div(Uint128::from(2_u128))
 }
 
 // removes from vector values older <last_element_timestamp - window>
@@ -77,13 +75,12 @@ pub fn frame_list(sample_list: &Vec<Sample>, window: Uint128) -> Vec<Sample> {
         boundary_right.timestamp,
         boundary_timestamp,
     );
-    let res = [
+
+    [
         vec![Sample::new(boundary_value, boundary_timestamp)],
         framed_list,
     ]
-    .concat();
-
-    res
+    .concat()
 }
 
 // returns average value of zigzag function on its window range
@@ -139,15 +136,14 @@ pub fn calc_volume_ratio(
 
     let volume_in = uint128_to_dec(deposit) + (one - swap_fee_rate) * uint128_to_dec(swap_in);
     let volume_out = uint128_to_dec(unbond + swap_out);
-    let volume_ratio = if !volume_in.is_zero() && !volume_out.is_zero() {
+
+    if !volume_in.is_zero() && !volume_out.is_zero() {
         volume_out / volume_in
     } else if !volume_out.is_zero() {
         max_ratio
     } else {
         one / max_ratio
-    };
-
-    volume_ratio
+    }
 }
 
 // TODO: make it actual function

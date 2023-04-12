@@ -33,15 +33,10 @@ fn deposit() {
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
-    prj.update_tokens(
-        ADDR_ADMIN_INJ,
-        SYMBOL_ATOM,
-        token.as_str(),
-        PRICE_FEED_ID_STR_ATOM,
-    )
-    .unwrap();
+    prj.update_tokens(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
 
-    prj.deposit(ADDR_ALICE_INJ, token.clone(), mint_amount.amount)
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
         .unwrap();
     let balance_contract = prj.get_cw20_balance(token.clone(), contract_address);
     let balance_alice = prj.get_cw20_balance(token, ADDR_ALICE_INJ);
@@ -61,15 +56,10 @@ fn withdraw() {
     };
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
-    prj.update_tokens(
-        ADDR_ADMIN_INJ,
-        SYMBOL_ATOM,
-        token.as_str(),
-        PRICE_FEED_ID_STR_ATOM,
-    )
-    .unwrap();
+    prj.update_tokens(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
 
-    prj.withdraw(ADDR_ALICE_INJ, SYMBOL_ATOM, mint_amount.amount)
+    prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
         .unwrap();
     let balance_contract = prj.get_cw20_balance(token.clone(), contract_address);
     let balance_alice = prj.get_cw20_balance(token, ADDR_ALICE_INJ);

@@ -10,12 +10,12 @@ pub struct Config {
     pub swap_fee_rate: Decimal,
 }
 
-// key - symbol: &str
-pub const TOKENS: Map<&str, Token> = Map::new("tokens");
+// key - token_addr: &Addr
+pub const TOKENS: Map<&Addr, Token> = Map::new("tokens");
 
 #[cw_serde]
 pub struct Token {
-    pub token_addr: Addr,
+    pub symbol: String,
     pub price_feed_id_str: String,
     // pub weight: Decimal,
     // pub price: Decimal,
@@ -26,7 +26,7 @@ pub const PROVIDERS: Map<&Addr, Vec<Asset>> = Map::new("providers");
 
 #[cw_serde]
 pub struct Asset {
-    pub symbol: String,
+    pub token_addr: String,
     pub bonded: Uint128,    // used in providing liquidity
     pub unbonded: Uint128,  // ready for withdrawing
     pub requested: Uint128, // will become unbonded when time >= counter

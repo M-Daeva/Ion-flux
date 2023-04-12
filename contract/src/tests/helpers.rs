@@ -136,8 +136,8 @@ impl Project {
     pub fn update_tokens(
         &mut self,
         sender: &str,
+        token_addr: &Addr,
         symbol: &str,
-        token_addr: &str,
         price_feed_id_str: &str,
     ) -> Result<AppResponse, StdError> {
         self.app
@@ -145,8 +145,8 @@ impl Project {
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
                 &ExecuteMsg::UpdateTokens {
-                    symbol: symbol.to_string(),
                     token_addr: token_addr.to_string(),
+                    symbol: symbol.to_string(),
                     price_feed_id_str: price_feed_id_str.to_string(),
                 },
                 &[],
@@ -158,7 +158,7 @@ impl Project {
     pub fn unbond(
         &mut self,
         sender: &str,
-        symbol: &str,
+        token_addr: &Addr,
         amount: Uint128,
     ) -> Result<AppResponse, StdError> {
         self.app
@@ -166,7 +166,7 @@ impl Project {
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
                 &ExecuteMsg::Unbond {
-                    symbol: symbol.to_string(),
+                    token_addr: token_addr.to_string(),
                     amount,
                 },
                 &[],
@@ -178,7 +178,7 @@ impl Project {
     pub fn withdraw(
         &mut self,
         sender: &str,
-        symbol: &str,
+        token_addr: &Addr,
         amount: Uint128,
     ) -> Result<AppResponse, StdError> {
         self.app
@@ -186,7 +186,7 @@ impl Project {
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
                 &ExecuteMsg::Withdraw {
-                    symbol: symbol.to_string(),
+                    token_addr: token_addr.to_string(),
                     amount,
                 },
                 &[],
@@ -207,13 +207,17 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap_and_claim(&mut self, sender: &str, symbol: &str) -> Result<AppResponse, StdError> {
+    pub fn swap_and_claim(
+        &mut self,
+        sender: &str,
+        token_addr: &Addr,
+    ) -> Result<AppResponse, StdError> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
                 &ExecuteMsg::SwapAndClaim {
-                    symbol: symbol.to_string(),
+                    token_addr: token_addr.to_string(),
                 },
                 &[],
             )
@@ -224,7 +228,7 @@ impl Project {
     pub fn deposit(
         &mut self,
         sender: &str,
-        token: Addr,
+        token_addr: &Addr,
         amount: Uint128,
     ) -> Result<AppResponse, StdError> {
         let msg = cw20::Cw20ExecuteMsg::Send {
@@ -234,7 +238,12 @@ impl Project {
         };
 
         self.app
-            .execute_contract(Addr::unchecked(sender.to_string()), token, &msg, &[])
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                token_addr.to_owned(),
+                &msg,
+                &[],
+            )
             .map_err(|err| err.downcast().unwrap())
     }
 
@@ -242,20 +251,25 @@ impl Project {
     pub fn swap(
         &mut self,
         sender: &str,
-        token: Addr,
+        token_addr: &Addr,
         amount: Uint128,
-        symbol_out: &str,
+        token_addr_out: &Addr,
     ) -> Result<AppResponse, StdError> {
         let msg = cw20::Cw20ExecuteMsg::Send {
             contract: self.address.to_string(),
             amount,
             msg: to_binary(&ReceiveMsg::Swap {
-                symbol_out: symbol_out.to_string(),
+                token_addr_out: token_addr_out.to_string(),
             })?,
         };
 
         self.app
-            .execute_contract(Addr::unchecked(sender.to_string()), token, &msg, &[])
+            .execute_contract(
+                Addr::unchecked(sender.to_string()),
+                token_addr.to_owned(),
+                &msg,
+                &[],
+            )
             .map_err(|err| err.downcast().unwrap())
     }
 

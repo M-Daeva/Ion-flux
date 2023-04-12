@@ -12,20 +12,20 @@ pub enum ExecuteMsg {
         swap_fee_rate: Option<Decimal>,
     },
     UpdateTokens {
-        symbol: String,
         token_addr: String,
+        symbol: String,
         price_feed_id_str: String,
     },
     Unbond {
-        symbol: String,
+        token_addr: String,
         amount: Uint128,
     },
     Withdraw {
-        symbol: String,
+        token_addr: String,
         amount: Uint128,
     },
     Claim {},
     SwapAndClaim {
-        symbol: String,
+        token_addr: String,
     },
 }

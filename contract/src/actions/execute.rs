@@ -47,8 +47,8 @@ pub fn update_tokens(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    symbol: String,
     token_addr: String,
+    symbol: String,
     price_feed_id_str: String,
 ) -> Result<Response, ContractError> {
     if info.sender != CONFIG.load(deps.storage)?.admin {
@@ -57,9 +57,9 @@ pub fn update_tokens(
 
     TOKENS.save(
         deps.storage,
-        &symbol,
+        &deps.api.addr_validate(&token_addr)?,
         &Token {
-            token_addr: deps.api.addr_validate(&token_addr)?,
+            symbol,
             price_feed_id_str,
         },
     )?;
@@ -68,12 +68,13 @@ pub fn update_tokens(
 }
 
 pub fn unbond(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    symbol: String,
+    token_addr: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
+    let token_addr = deps.api.addr_validate(&token_addr)?;
     unimplemented!()
 }
 
@@ -82,10 +83,12 @@ pub fn withdraw(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    symbol: String,
+    token_addr: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
-    let token = match TOKENS.load(deps.storage, &symbol) {
+    let token_addr = deps.api.addr_validate(&token_addr)?;
+
+    let token = match TOKENS.load(deps.storage, &token_addr) {
         Ok(x) => x,
         _ => Err(ContractError::TokenIsNotFound {})?,
     };
@@ -96,7 +99,7 @@ pub fn withdraw(
     };
 
     let msg = WasmMsg::Execute {
-        contract_addr: token.token_addr.to_string(),
+        contract_addr: token_addr.to_string(),
         msg: to_binary(&cw_send_msg)?,
         funds: vec![],
     };
@@ -112,10 +115,11 @@ pub fn claim(_deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, C
 
 // TODO: check if it must be in receive.rs
 pub fn swap_and_claim(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    symbol: String,
+    token_addr: String,
 ) -> Result<Response, ContractError> {
+    let token_addr = deps.api.addr_validate(&token_addr)?;
     unimplemented!()
 }
