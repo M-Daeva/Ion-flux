@@ -133,7 +133,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn update_tokens(
+    pub fn update_token(
         &mut self,
         sender: &str,
         token_addr: &Addr,
@@ -144,7 +144,7 @@ impl Project {
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
-                &ExecuteMsg::UpdateTokens {
+                &ExecuteMsg::UpdateToken {
                     token_addr: token_addr.to_string(),
                     symbol: symbol.to_string(),
                     price_feed_id_str: price_feed_id_str.to_string(),

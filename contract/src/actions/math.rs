@@ -122,11 +122,14 @@ pub fn calc_sma(
 }
 
 // TODO: add tests
+// volume_ratio = (unbonded + requested + swapped_out) / (bonded + (1 - swap_fee_rate) * swapped_in)
+// all values used as SMA
 pub fn calc_volume_ratio(
-    deposit: Uint128,
-    unbond: Uint128,
-    swap_in: Uint128,
-    swap_out: Uint128,
+    bonded: Uint128,
+    unbonded: Uint128,
+    requested: Uint128,
+    swapped_in: Uint128,
+    swapped_out: Uint128,
     swap_fee_rate: Decimal,
 ) -> Decimal {
     const MAX_RATIO: u128 = 100;
@@ -134,8 +137,8 @@ pub fn calc_volume_ratio(
     let max_ratio = u128_to_dec(MAX_RATIO);
     let one = Decimal::one();
 
-    let volume_in = uint128_to_dec(deposit) + (one - swap_fee_rate) * uint128_to_dec(swap_in);
-    let volume_out = uint128_to_dec(unbond + swap_out);
+    let volume_in = uint128_to_dec(bonded) + (one - swap_fee_rate) * uint128_to_dec(swapped_in);
+    let volume_out = uint128_to_dec(unbonded + requested + swapped_out);
 
     if !volume_in.is_zero() && !volume_out.is_zero() {
         volume_out / volume_in
@@ -148,9 +151,9 @@ pub fn calc_volume_ratio(
 
 // TODO: make it actual function
 // pub fn calc_provider_reward() {
-//     let token_weight = calc_volume_ratio(deposit, unbond, swap_in, swap_out, swap_fee);
-//     let allocation = deposit / sum_of_all_deposits_in_this_token;
+//     let token_weight = calc_volume_ratio(bonded, unbonded, requested, swapped_in, swapped_out, swap_fee_rate);
+//     let allocation = token_amount_bonded_by_one_provider / token_amount_bonded_by_all_providers;
 //     let provider_weight = token_weight * allocation;
-//     let swap_fee = swap_fee_rate * swap_in;
+//     let swap_fee = swap_fee_rate * swapped_in;
 //     let provider_reward = swap_fee * provider_weight;
 // }

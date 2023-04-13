@@ -40,10 +40,12 @@ pub fn deposit(
                 x.bonded
             };
 
+            // TODO: update TOKENS
+
             Asset {
-                requested,
-                unbonded,
                 bonded,
+                unbonded,
+                requested,
                 ..x.to_owned()
             }
         })

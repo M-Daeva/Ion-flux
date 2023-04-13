@@ -43,7 +43,7 @@ pub fn update_config(
     Ok(Response::new().add_attributes(vec![("action", "update_config")]))
 }
 
-pub fn update_tokens(
+pub fn update_token(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
@@ -55,16 +55,25 @@ pub fn update_tokens(
         return Err(ContractError::Unauthorized {});
     }
 
+    let token_addr = deps.api.addr_validate(&token_addr)?;
+
+    // check if token exists or create new one
+    let token = match TOKENS.load(deps.storage, &token_addr) {
+        Ok(x) => x,
+        _ => Token::new(&symbol, &price_feed_id_str),
+    };
+
     TOKENS.save(
         deps.storage,
-        &deps.api.addr_validate(&token_addr)?,
+        &token_addr,
         &Token {
             symbol,
             price_feed_id_str,
+            ..token
         },
     )?;
 
-    Ok(Response::new().add_attributes(vec![("action", "update_tokens")]))
+    Ok(Response::new().add_attributes(vec![("action", "update_token")]))
 }
 
 pub fn unbond(

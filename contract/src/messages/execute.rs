@@ -11,7 +11,7 @@ pub enum ExecuteMsg {
         admin: Option<String>,
         swap_fee_rate: Option<Decimal>,
     },
-    UpdateTokens {
+    UpdateToken {
         token_addr: String,
         symbol: String,
         price_feed_id_str: String,

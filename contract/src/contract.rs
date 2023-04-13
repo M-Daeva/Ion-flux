@@ -7,7 +7,7 @@ use cw20::Cw20ReceiveMsg;
 
 use crate::{
     actions::{
-        execute::{claim, swap_and_claim, unbond, update_config, update_tokens, withdraw},
+        execute::{claim, swap_and_claim, unbond, update_config, update_token, withdraw},
         instantiate::init,
         migrate::migrate_contract,
         query::{query_balances, query_price, query_provider, query_tokens},
@@ -46,11 +46,11 @@ pub fn execute(
             swap_fee_rate,
         } => update_config(deps, env, info, admin, swap_fee_rate),
         // TODO
-        ExecuteMsg::UpdateTokens {
+        ExecuteMsg::UpdateToken {
             token_addr,
             symbol,
             price_feed_id_str,
-        } => update_tokens(deps, env, info, token_addr, symbol, price_feed_id_str),
+        } => update_token(deps, env, info, token_addr, symbol, price_feed_id_str),
         // TODO
         ExecuteMsg::Unbond { token_addr, amount } => unbond(deps, env, info, token_addr, amount),
         // TODO

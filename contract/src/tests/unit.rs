@@ -33,7 +33,7 @@ fn deposit() {
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
-    prj.update_tokens(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
         .unwrap();
 
     prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
@@ -56,7 +56,7 @@ fn withdraw() {
     };
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
-    prj.update_tokens(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
         .unwrap();
 
     prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
