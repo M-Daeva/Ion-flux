@@ -1,9 +1,10 @@
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
+use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdError, Uint128};
 
 use crate::{
+    actions::math::calc_sma,
     error::ContractError,
-    state::{Asset, PROVIDERS, TOKENS},
+    state::{Asset, Config, Sample, Token, CONFIG, PROVIDERS, TOKENS},
 };
 
 pub fn deposit(
@@ -13,10 +14,13 @@ pub fn deposit(
     sender: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
-    // check if token is supported
-    TOKENS.load(deps.storage, &info.sender)?;
-
     let provider_addr = deps.api.addr_validate(&sender)?;
+    let token_addr = info.sender.clone();
+    let timestamp = env.block.time;
+    let Config { window, .. } = CONFIG.load(deps.storage)?;
+
+    // check if token is supported
+    TOKENS.load(deps.storage, &token_addr)?;
 
     // check if provider exists or create new one
     let provider = match PROVIDERS.load(deps.storage, &provider_addr) {
@@ -27,25 +31,74 @@ pub fn deposit(
     let provider_updated: Vec<Asset> = provider
         .iter()
         .map(|x| {
-            // check unbonding counter
-            let (requested, unbonded) = if !x.requested.is_zero() && (x.counter <= env.block.time) {
-                (Uint128::zero(), x.requested)
-            } else {
-                (x.requested, x.unbonded)
+            let mut is_unbonding_counter_ready = false;
+            let mut is_bonded_updated = false;
+
+            let Asset {
+                mut unbonded,
+                mut requested,
+                mut bonded,
+                ..
+            } = x;
+
+            // update provider token data
+            if !x.requested.is_zero() && (x.counter <= timestamp) {
+                is_unbonding_counter_ready = true;
+                unbonded += requested;
+                requested = Uint128::zero();
+            }
+
+            if x.token_addr == token_addr {
+                is_bonded_updated = true;
+                bonded += amount;
             };
 
-            let bonded = if x.token_addr == info.sender {
-                x.bonded + amount
-            } else {
-                x.bonded
-            };
+            // update global token data
+            TOKENS
+                .update(
+                    deps.storage,
+                    &token_addr,
+                    |some_token| -> Result<Token, ContractError> {
+                        let token = some_token.unwrap();
+                        let Token {
+                            unbonded: mut unbonded_sma,
+                            requested: mut requested_sma,
+                            bonded: mut bonded_sma,
+                            ..
+                        } = token.clone();
 
-            // TODO: update TOKENS
+                        if is_unbonding_counter_ready {
+                            unbonded_sma = calc_sma(
+                                &token.unbonded.0,
+                                &Sample::new(unbonded, timestamp),
+                                window,
+                            );
+                            requested_sma = calc_sma(
+                                &token.requested.0,
+                                &Sample::new(requested, timestamp),
+                                window,
+                            );
+                        };
+
+                        if is_bonded_updated {
+                            bonded_sma =
+                                calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window);
+                        };
+
+                        Ok(Token {
+                            unbonded: unbonded_sma,
+                            requested: requested_sma,
+                            bonded: bonded_sma,
+                            ..token
+                        })
+                    },
+                )
+                .unwrap();
 
             Asset {
-                bonded,
                 unbonded,
                 requested,
+                bonded,
                 ..x.to_owned()
             }
         })

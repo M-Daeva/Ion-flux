@@ -1,6 +1,6 @@
 use std::ops::Div;
 
-use cosmwasm_std::{Decimal, Uint128};
+use cosmwasm_std::{Decimal, Timestamp, Uint128};
 
 use crate::state::Sample;
 
@@ -38,24 +38,35 @@ pub fn u128_vec_to_uint128_vec(u128_vec: Vec<u128>) -> Vec<Uint128> {
 }
 
 // linear interpolation for linear function y(t), t in range t1...t2, y in range y1...y2
-pub fn interpolate(y1: Uint128, y2: Uint128, t1: Uint128, t2: Uint128, t: Uint128) -> Uint128 {
-    y1 + (y2 - y1) * (t - t1) / (t2 - t1)
+fn interpolate(y1: Uint128, y2: Uint128, t1: Timestamp, t2: Timestamp, t: Timestamp) -> Uint128 {
+    let t1 = t1.nanos();
+    let t2 = t2.nanos();
+    let t = t.nanos();
+
+    y1 + (y2 - y1) * Uint128::from((t - t1) / (t2 - t1))
 }
 
 // area under line y(t), t in range t1...t2, y in range y1...y2
-pub fn calc_area(y1: Uint128, y2: Uint128, t1: Uint128, t2: Uint128) -> Uint128 {
-    ((y2 + y1) * (t2 - t1)).div(Uint128::from(2_u128))
+fn calc_area(y1: Uint128, y2: Uint128, t1: Timestamp, t2: Timestamp) -> Uint128 {
+    let t1 = t1.nanos();
+    let t2 = t2.nanos();
+
+    ((y2 + y1) * Uint128::from(t2 - t1)).div(Uint128::from(2_u128))
 }
 
 // removes from vector values older <last_element_timestamp - window>
 // also applies linear interpolation to get a point on left boundary
-pub fn frame_list(sample_list: &Vec<Sample>, window: Uint128) -> Vec<Sample> {
+fn frame_list(sample_list: &Vec<Sample>, window: Uint128) -> Vec<Sample> {
     // check if sample list isn't empty to use unwrap() on first() and last()
     if sample_list.is_empty() {
         panic!("Sample list is empty!");
     }
 
-    let boundary_timestamp = sample_list.last().unwrap().timestamp - window;
+    let boundary_timestamp = sample_list
+        .last()
+        .unwrap()
+        .timestamp
+        .minus_nanos(window.u128() as u64);
     let mut boundary_left = sample_list.first().unwrap().clone();
     let mut framed_list: Vec<Sample> = vec![];
 
@@ -84,7 +95,7 @@ pub fn frame_list(sample_list: &Vec<Sample>, window: Uint128) -> Vec<Sample> {
 }
 
 // returns average value of zigzag function on its window range
-pub fn calc_average(sample_list: &Vec<Sample>) -> Uint128 {
+fn calc_average(sample_list: &Vec<Sample>) -> Uint128 {
     // check if sample list isn't empty to use unwrap() on first() and last()
     if sample_list.is_empty() {
         panic!("Sample list is empty!");
@@ -105,7 +116,9 @@ pub fn calc_average(sample_list: &Vec<Sample>) -> Uint128 {
         sample_pre = sample;
     }
 
-    let window = sample_list.last().unwrap().timestamp - sample_list.first().unwrap().timestamp;
+    let timestamp_last = sample_list.last().unwrap().timestamp.nanos();
+    let timestamp_first = sample_list.first().unwrap().timestamp.nanos();
+    let window = Uint128::from(timestamp_last - timestamp_first);
 
     area_acc / window
 }

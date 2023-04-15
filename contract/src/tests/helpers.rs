@@ -118,6 +118,8 @@ impl Project {
         sender: &str,
         admin: Option<String>,
         swap_fee_rate: Option<Decimal>,
+        window: Option<Uint128>,
+        unbonding_period: Option<Uint128>,
     ) -> Result<AppResponse, StdError> {
         self.app
             .execute_contract(
@@ -126,6 +128,8 @@ impl Project {
                 &ExecuteMsg::UpdateConfig {
                     admin,
                     swap_fee_rate,
+                    window,
+                    unbonding_period,
                 },
                 &[],
             )

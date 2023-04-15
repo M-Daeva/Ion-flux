@@ -44,7 +44,17 @@ pub fn execute(
         ExecuteMsg::UpdateConfig {
             admin,
             swap_fee_rate,
-        } => update_config(deps, env, info, admin, swap_fee_rate),
+            window,
+            unbonding_period,
+        } => update_config(
+            deps,
+            env,
+            info,
+            admin,
+            swap_fee_rate,
+            window,
+            unbonding_period,
+        ),
         // TODO
         ExecuteMsg::UpdateToken {
             token_addr,

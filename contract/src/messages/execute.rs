@@ -10,6 +10,8 @@ pub enum ExecuteMsg {
     UpdateConfig {
         admin: Option<String>,
         swap_fee_rate: Option<Decimal>,
+        window: Option<Uint128>,
+        unbonding_period: Option<Uint128>,
     },
     UpdateToken {
         token_addr: String,

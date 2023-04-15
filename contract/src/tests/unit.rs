@@ -36,6 +36,9 @@ fn deposit() {
     prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
         .unwrap();
 
+    // let res = prj.query_provider(ADDR_ALICE_INJ).unwrap();
+    // println!("provider {:#?}", res);
+
     prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
         .unwrap();
     let balance_contract = prj.get_cw20_balance(token.clone(), contract_address);
@@ -51,13 +54,20 @@ fn withdraw() {
     let contract_address = prj.address.clone();
 
     let mint_amount = Cw20Coin {
-        address: contract_address.to_string(),
+        address: ADDR_ALICE_INJ.to_string(),
         amount: Uint128::from(5u128),
     };
+
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
     prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
         .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+
+    let res = prj.query_provider(ADDR_ALICE_INJ).unwrap();
+    println!("provider {:#?}", res);
 
     prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
         .unwrap();

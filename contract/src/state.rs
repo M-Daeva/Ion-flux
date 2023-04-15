@@ -8,6 +8,8 @@ pub const CONFIG: Item<Config> = Item::new("config");
 pub struct Config {
     pub admin: Addr,
     pub swap_fee_rate: Decimal,
+    pub window: Uint128,
+    pub unbonding_period: Uint128,
 }
 
 // key - token_addr: &Addr
@@ -17,23 +19,25 @@ pub const TOKENS: Map<&Addr, Token> = Map::new("tokens");
 pub struct Token {
     pub symbol: String, // TODO: check if it's needed
     pub price_feed_id_str: String,
-    pub bonded: Vec<Uint128>,    // providing liquidity +, fee-sharing +
-    pub unbonded: Vec<Uint128>,  // providing liquidity -, fee-sharing - | ready for withdrawing
-    pub requested: Vec<Uint128>, // providing liquidity +, fee-sharing - | will become unbonded when time >= counter
-    pub swapped_in: Vec<Uint128>,
-    pub swapped_out: Vec<Uint128>,
+    pub bonded: (Vec<Sample>, Uint128), // providing liquidity +, fee-sharing +
+    pub unbonded: (Vec<Sample>, Uint128), // providing liquidity -, fee-sharing - | ready for withdrawing
+    pub requested: (Vec<Sample>, Uint128), // providing liquidity +, fee-sharing - | will become unbonded when time >= counter
+    pub swapped_in: (Vec<Sample>, Uint128),
+    pub swapped_out: (Vec<Sample>, Uint128),
 }
 
 impl Token {
     pub fn new(symbol: &str, price_feed_id_str: &str) -> Self {
+        let zero = Uint128::zero();
+
         Token {
             symbol: symbol.to_string(),
             price_feed_id_str: price_feed_id_str.to_string(),
-            bonded: vec![],
-            unbonded: vec![],
-            requested: vec![],
-            swapped_in: vec![],
-            swapped_out: vec![],
+            bonded: (vec![], zero),
+            unbonded: (vec![], zero),
+            requested: (vec![], zero),
+            swapped_in: (vec![], zero),
+            swapped_out: (vec![], zero),
         }
     }
 }
@@ -61,12 +65,11 @@ pub struct Pyth {
 #[cw_serde]
 pub struct Sample {
     pub value: Uint128,
-    pub timestamp: Uint128,
+    pub timestamp: Timestamp,
 }
 
-// TODO: use Timestamp
 impl Sample {
-    pub fn new(value: Uint128, timestamp: Uint128) -> Self {
+    pub fn new(value: Uint128, timestamp: Timestamp) -> Self {
         Sample { value, timestamp }
     }
 }

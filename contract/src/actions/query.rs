@@ -2,10 +2,18 @@
 use cosmwasm_std::{to_binary, Binary, Deps, Env, StdError, StdResult};
 use pyth_sdk_cw::{query_price_feed, PriceIdentifier};
 
-use crate::state::{Pyth, PYTH};
+use crate::{
+    error::{to_std_err, ContractError},
+    state::{Pyth, PROVIDERS, PYTH},
+};
 
 pub fn query_provider(deps: Deps, _env: Env, address: String) -> StdResult<Binary> {
-    unimplemented!()
+    let provider_addr = deps.api.addr_validate(&address)?;
+    let provider = PROVIDERS
+        .load(deps.storage, &provider_addr)
+        .map_err(|_| to_std_err(ContractError::ProviderIsNotFound {}))?;
+
+    to_binary(&provider)
 }
 
 pub fn query_tokens(deps: Deps, _env: Env) -> StdResult<Binary> {

@@ -1,6 +1,10 @@
 use cosmwasm_std::StdError;
 use thiserror::Error;
 
+pub fn to_std_err(contract_error: ContractError) -> StdError {
+    StdError::generic_err(contract_error.to_string())
+}
+
 /// Never is a placeholder to ensure we don't return any errors
 #[derive(Error, Debug)]
 pub enum Never {}
@@ -19,8 +23,8 @@ pub enum ContractError {
     #[error("There are not enough funds to withdraw!")]
     WithdrawAmountIsExceeded {},
 
-    #[error("User is not found!")]
-    UserIsNotFound {},
+    #[error("Provider is not found!")]
+    ProviderIsNotFound {},
 
     #[error("Token is not included in token list!")]
     TokenIsNotFound {},
