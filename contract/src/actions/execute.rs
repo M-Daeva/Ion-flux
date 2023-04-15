@@ -23,32 +23,23 @@ pub fn update_config(
         deps.storage,
         |mut config| -> Result<Config, ContractError> {
             if info.sender != config.admin {
-                return Err(ContractError::Unauthorized {});
+                Err(ContractError::Unauthorized {})?;
             }
 
-            if let Some(admin) = admin {
-                config = Config {
-                    admin: deps.api.addr_validate(&admin)?,
-                    ..config
-                };
+            if let Some(x) = admin {
+                config.admin = deps.api.addr_validate(&x)?;
             }
 
-            if let Some(swap_fee_rate) = swap_fee_rate {
-                config = Config {
-                    swap_fee_rate,
-                    ..config
-                };
+            if let Some(x) = swap_fee_rate {
+                config.swap_fee_rate = x;
             }
 
-            if let Some(window) = window {
-                config = Config { window, ..config };
+            if let Some(x) = window {
+                config.window = x;
             }
 
-            if let Some(unbonding_period) = unbonding_period {
-                config = Config {
-                    unbonding_period,
-                    ..config
-                };
+            if let Some(x) = unbonding_period {
+                config.unbonding_period = x;
             }
 
             Ok(config)
@@ -67,16 +58,15 @@ pub fn update_token(
     price_feed_id_str: String,
 ) -> Result<Response, ContractError> {
     if info.sender != CONFIG.load(deps.storage)?.admin {
-        return Err(ContractError::Unauthorized {});
+        Err(ContractError::Unauthorized {})?;
     }
 
     let token_addr = deps.api.addr_validate(&token_addr)?;
 
     // check if token exists or create new one
-    let token = match TOKENS.load(deps.storage, &token_addr) {
-        Ok(x) => x,
-        _ => Token::new(&symbol, &price_feed_id_str),
-    };
+    let token = TOKENS
+        .load(deps.storage, &token_addr)
+        .unwrap_or(Token::new(&symbol, &price_feed_id_str));
 
     TOKENS.save(
         deps.storage,
@@ -108,94 +98,104 @@ pub fn unbond(
     } = CONFIG.load(deps.storage)?;
 
     // check if token is supported
-    TOKENS.load(deps.storage, &token_addr)?;
+    TOKENS
+        .load(deps.storage, &token_addr)
+        .map_err(|_| ContractError::TokenIsNotFound {})?;
 
     // check if provider exists or return err
-    let provider = match PROVIDERS.load(deps.storage, &provider_addr) {
-        Ok(x) => x,
-        _ => Err(ContractError::ProviderIsNotFound {})?,
-    };
+    let provider = PROVIDERS
+        .load(deps.storage, &provider_addr)
+        .map_err(|_| ContractError::ProviderIsNotFound {})?;
 
-    let provider_updated: Vec<Asset> = provider
-        .iter()
-        .map(|x| {
-            let mut is_unbonding_counter_ready = false;
-            let mut is_bonded_updated = false;
+    // check if provider has any funds in the app
+    if provider.is_empty() {
+        Err(ContractError::FundsAreNotFound {})?;
+    }
 
-            let Asset {
-                mut unbonded,
-                mut requested,
-                mut bonded,
-                ..
-            } = x;
+    let mut provider_updated: Vec<Asset> = Vec::with_capacity(provider.len());
 
-            // update provider token data
-            if !x.requested.is_zero() && (x.counter <= timestamp) {
-                is_unbonding_counter_ready = true;
-                unbonded += requested;
-                requested = Uint128::zero();
-            }
+    for asset in provider.iter() {
+        let mut is_unbonding_counter_ready = false;
+        let mut is_bonded_updated = false;
 
-            if x.token_addr == token_addr {
-                is_bonded_updated = true;
-                bonded -= amount;
-                requested += amount;
-            };
+        let Asset {
+            mut unbonded,
+            mut requested,
+            mut bonded,
+            ..
+        } = asset;
 
-            // update global token data
-            TOKENS
-                .update(
-                    deps.storage,
-                    &token_addr,
-                    |some_token| -> Result<Token, ContractError> {
-                        let token = some_token.unwrap();
-                        let Token {
-                            unbonded: mut unbonded_sma,
-                            requested: mut requested_sma,
-                            bonded: mut bonded_sma,
-                            ..
-                        } = token.clone();
+        // update provider token data
+        if !asset.requested.is_zero() && (asset.counter <= timestamp) {
+            is_unbonding_counter_ready = true;
 
-                        if is_unbonding_counter_ready || is_bonded_updated {
-                            requested_sma = calc_sma(
-                                &token.requested.0,
-                                &Sample::new(requested, timestamp),
-                                window,
-                            );
-                        };
+            unbonded = unbonded
+                .checked_add(requested)
+                .map_err(|e| ContractError::CustomError { val: e.to_string() })?;
 
-                        if is_unbonding_counter_ready {
-                            unbonded_sma = calc_sma(
-                                &token.unbonded.0,
-                                &Sample::new(unbonded, timestamp),
-                                window,
-                            );
-                        };
+            requested = Uint128::zero();
+        }
 
-                        if is_bonded_updated {
-                            bonded_sma =
-                                calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window);
-                        };
+        if asset.token_addr == token_addr {
+            is_bonded_updated = true;
 
-                        Ok(Token {
-                            unbonded: unbonded_sma,
-                            requested: requested_sma,
-                            bonded: bonded_sma,
-                            ..token
-                        })
-                    },
-                )
-                .unwrap();
+            bonded = bonded
+                .checked_sub(amount)
+                .map_err(|_| ContractError::WithdrawAmountIsExceeded {})?;
 
-            Asset {
-                unbonded,
-                requested,
-                bonded,
-                counter: timestamp.plus_nanos(unbonding_period.u128() as u64),
-                ..x.to_owned()
-            }
-        })
-        .collect();
+            requested = requested
+                .checked_add(amount)
+                .map_err(|e| ContractError::CustomError { val: e.to_string() })?;
+        };
+
+        // update global token data
+        TOKENS.update(
+            deps.storage,
+            &token_addr,
+            |some_token| -> Result<Token, ContractError> {
+                let token = some_token.ok_or(ContractError::TokenIsNotFound {})?;
+
+                let Token {
+                    unbonded: mut unbonded_sma,
+                    requested: mut requested_sma,
+                    bonded: mut bonded_sma,
+                    ..
+                } = token.clone();
+
+                if is_unbonding_counter_ready || is_bonded_updated {
+                    requested_sma = calc_sma(
+                        &token.requested.0,
+                        &Sample::new(requested, timestamp),
+                        window,
+                    );
+                };
+
+                if is_unbonding_counter_ready {
+                    unbonded_sma =
+                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window);
+                };
+
+                if is_bonded_updated {
+                    bonded_sma = calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window);
+                };
+
+                Ok(Token {
+                    unbonded: unbonded_sma,
+                    requested: requested_sma,
+                    bonded: bonded_sma,
+                    ..token
+                })
+            },
+        )?;
+
+        provider_updated.push(Asset {
+            unbonded,
+            requested,
+            bonded,
+            counter: timestamp.plus_nanos(unbonding_period.u128() as u64),
+            ..asset.to_owned()
+        });
+    }
 
     PROVIDERS.save(deps.storage, &provider_addr, &provider_updated)?;
 
