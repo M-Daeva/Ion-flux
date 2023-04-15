@@ -16,11 +16,11 @@ pub fn query_provider(deps: Deps, _env: Env, address: String) -> StdResult<Binar
     to_binary(&provider)
 }
 
-pub fn query_tokens(deps: Deps, _env: Env) -> StdResult<Binary> {
+pub fn query_tokens(_deps: Deps, _env: Env) -> StdResult<Binary> {
     unimplemented!()
 }
 
-pub fn query_balances(deps: Deps, _env: Env) -> StdResult<Binary> {
+pub fn query_balances(_deps: Deps, _env: Env) -> StdResult<Binary> {
     unimplemented!()
 }
 

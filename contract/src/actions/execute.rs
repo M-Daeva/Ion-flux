@@ -66,7 +66,7 @@ pub fn update_token(
     // check if token exists or create new one
     let token = TOKENS
         .load(deps.storage, &token_addr)
-        .unwrap_or(Token::new(&symbol, &price_feed_id_str));
+        .unwrap_or_else(|_| Token::new(&symbol, &price_feed_id_str));
 
     TOKENS.save(
         deps.storage,
@@ -88,7 +88,7 @@ pub fn unbond(
     token_addr: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
-    let provider_addr = info.sender.clone();
+    let provider_addr = info.sender;
     let token_addr = deps.api.addr_validate(&token_addr)?;
     let timestamp = env.block.time;
     let Config {
@@ -209,7 +209,7 @@ pub fn withdraw(
     token_addr: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
-    let provider_addr = info.sender.clone();
+    let provider_addr = info.sender;
     let token_addr = deps.api.addr_validate(&token_addr)?;
     let timestamp = env.block.time;
     let Config { window, .. } = CONFIG.load(deps.storage)?;
@@ -322,17 +322,17 @@ pub fn withdraw(
         .add_attributes(vec![("action", "withdraw")]))
 }
 
-pub fn claim(_deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn claim(_deps: DepsMut, _env: Env, _info: MessageInfo) -> Result<Response, ContractError> {
     unimplemented!()
 }
 
 // TODO: check if it must be in receive.rs
 pub fn swap_and_claim(
-    deps: DepsMut,
+    _deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
-    token_addr: String,
+    _info: MessageInfo,
+    _token_addr: String,
 ) -> Result<Response, ContractError> {
-    let token_addr = deps.api.addr_validate(&token_addr)?;
+    // let token_addr = deps.api.addr_validate(&token_addr)?;
     unimplemented!()
 }
