@@ -47,12 +47,27 @@ pub const PROVIDERS: Map<&Addr, Vec<Asset>> = Map::new("providers");
 
 #[cw_serde]
 pub struct Asset {
-    pub token_addr: String,
+    pub token_addr: Addr,
     pub bonded: Uint128,    // providing liquidity +, fee-sharing +
     pub unbonded: Uint128,  // providing liquidity -, fee-sharing - | ready for withdrawing
     pub requested: Uint128, // providing liquidity +, fee-sharing - | will become unbonded when time >= counter
     pub counter: Timestamp,
     pub rewards: Uint128,
+}
+
+impl Asset {
+    pub fn new(token_addr: &Addr, timestamp: &Timestamp) -> Self {
+        let zero = Uint128::zero();
+
+        Asset {
+            token_addr: token_addr.to_owned(),
+            bonded: zero,
+            unbonded: zero,
+            requested: zero,
+            counter: timestamp.to_owned(),
+            rewards: zero,
+        }
+    }
 }
 
 pub const PYTH: Item<Pyth> = Item::new("pyth");

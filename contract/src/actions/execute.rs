@@ -167,16 +167,17 @@ pub fn unbond(
                         &token.requested.0,
                         &Sample::new(requested, timestamp),
                         window,
-                    );
+                    )?;
                 };
 
                 if is_unbonding_counter_ready {
                     unbonded_sma =
-                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window);
+                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window)?;
                 };
 
                 if is_bonded_updated {
-                    bonded_sma = calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window);
+                    bonded_sma =
+                        calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window)?;
                 };
 
                 Ok(Token {
@@ -289,7 +290,7 @@ pub fn withdraw(
 
                 if is_unbonding_counter_ready || is_unbonded_updated {
                     unbonded_sma =
-                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window);
+                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window)?;
                 };
 
                 if is_unbonding_counter_ready {
@@ -297,7 +298,7 @@ pub fn withdraw(
                         &token.requested.0,
                         &Sample::new(requested, timestamp),
                         window,
-                    );
+                    )?;
                 };
 
                 Ok(Token {

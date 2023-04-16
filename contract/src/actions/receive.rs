@@ -27,7 +27,7 @@ pub fn deposit(
     // check if provider exists or create new one
     let provider = PROVIDERS
         .load(deps.storage, &provider_addr)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| vec![Asset::new(&token_addr, &timestamp)]);
 
     let mut provider_updated: Vec<Asset> = Vec::with_capacity(provider.len());
 
@@ -77,16 +77,17 @@ pub fn deposit(
 
                 if is_unbonding_counter_ready {
                     unbonded_sma =
-                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window);
+                        calc_sma(&token.unbonded.0, &Sample::new(unbonded, timestamp), window)?;
                     requested_sma = calc_sma(
                         &token.requested.0,
                         &Sample::new(requested, timestamp),
                         window,
-                    );
+                    )?;
                 };
 
                 if is_bonded_updated {
-                    bonded_sma = calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window);
+                    bonded_sma =
+                        calc_sma(&token.bonded.0, &Sample::new(bonded, timestamp), window)?;
                 };
 
                 Ok(Token {
