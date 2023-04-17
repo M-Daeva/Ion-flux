@@ -25,11 +25,20 @@ pub fn deposit(
         .map_err(|_| ContractError::TokenIsNotFound {})?;
 
     // check if provider exists or create new one
-    let provider = PROVIDERS
+    let mut provider = PROVIDERS
         .load(deps.storage, &provider_addr)
         .unwrap_or_else(|_| vec![Asset::new(&token_addr, &timestamp)]);
 
-    let mut provider_updated: Vec<Asset> = Vec::with_capacity(provider.len());
+    // check if provider has asset
+    if provider
+        .iter()
+        .find(|x| x.token_addr == token_addr)
+        .is_none()
+    {
+        provider.push(Asset::new(&token_addr, &timestamp));
+    };
+
+    let mut provider_updated: Vec<Asset> = vec![];
 
     for asset in provider.iter() {
         let mut is_unbonding_counter_ready = false;

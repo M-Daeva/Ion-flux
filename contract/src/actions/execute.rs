@@ -112,7 +112,7 @@ pub fn unbond(
         Err(ContractError::FundsAreNotFound {})?;
     }
 
-    let mut provider_updated: Vec<Asset> = Vec::with_capacity(provider.len());
+    let mut provider_updated: Vec<Asset> = vec![];
 
     for asset in provider.iter() {
         let mut is_unbonding_counter_ready = false;
@@ -122,6 +122,7 @@ pub fn unbond(
             mut unbonded,
             mut requested,
             mut bonded,
+            mut counter,
             ..
         } = asset;
 
@@ -146,6 +147,8 @@ pub fn unbond(
             requested = requested
                 .checked_add(amount)
                 .map_err(|e| ContractError::CustomError { val: e.to_string() })?;
+
+            counter = timestamp.plus_nanos(unbonding_period.u128() as u64);
         };
 
         // update global token data
@@ -193,7 +196,7 @@ pub fn unbond(
             unbonded,
             requested,
             bonded,
-            counter: timestamp.plus_nanos(unbonding_period.u128() as u64),
+            counter,
             ..asset.to_owned()
         });
     }
@@ -231,7 +234,7 @@ pub fn withdraw(
     }
 
     let mut msgs: Vec<CosmosMsg> = vec![];
-    let mut provider_updated: Vec<Asset> = Vec::with_capacity(provider.len());
+    let mut provider_updated: Vec<Asset> = vec![];
 
     for asset in provider.iter() {
         let mut is_unbonding_counter_ready = false;
@@ -308,6 +311,15 @@ pub fn withdraw(
                 })
             },
         )?;
+
+        // remove asset from list if there are no balances
+        if unbonded.is_zero()
+            && requested.is_zero()
+            && asset.bonded.is_zero()
+            && asset.rewards.is_zero()
+        {
+            continue;
+        }
 
         provider_updated.push(Asset {
             unbonded,

@@ -55,15 +55,12 @@ pub fn execute(
             window,
             unbonding_period,
         ),
-        // TODO
         ExecuteMsg::UpdateToken {
             token_addr,
             symbol,
             price_feed_id_str,
         } => update_token(deps, env, info, token_addr, symbol, price_feed_id_str),
-        // TODO
         ExecuteMsg::Unbond { token_addr, amount } => unbond(deps, env, info, token_addr, amount),
-        // TODO
         ExecuteMsg::Withdraw { token_addr, amount } => {
             withdraw(deps, env, info, token_addr, amount)
         }
@@ -88,7 +85,6 @@ pub fn receive(
     } = wrapper;
 
     match from_binary(&msg)? {
-        // TODO
         ReceiveMsg::Deposit {} => deposit(deps, env, info, sender, amount),
         // TODO
         ReceiveMsg::Swap { token_addr_out } => {
@@ -101,7 +97,6 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        // TODO
         QueryMsg::QueryProvider { address } => query_provider(deps, env, address),
         // TODO
         QueryMsg::QueryTokens {} => query_tokens(deps, env),

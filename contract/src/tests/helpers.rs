@@ -14,11 +14,17 @@ use crate::{
 
 pub const ADDR_ADMIN_INJ: &str = "inj1amp7dv5fvjyx95ea4grld6jmu9v207awtefwce";
 pub const ADDR_ALICE_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
+pub const ADDR_BOB_INJ: &str = "inj1hag3kx8f9ypnssw7aqnq9e82t2zgt0g0ac2rru";
 
 pub const SYMBOL_ATOM: &str = "ATOM";
+pub const SYMBOL_LUNA: &str = "LUNA";
 
 pub const PRICE_FEED_ID_STR_ATOM: &str =
     "0x61226d39beea19d334f17c2febce27e12646d84675924ebb02b9cdaea68727e3";
+pub const PRICE_FEED_ID_STR_LUNA: &str =
+    "0x677dbbf4f68b5cb996a40dfae338b87d5efb2e12a9b2686d1ca16d69b3d7f204";
+
+pub const UNBONDING_PERIOD: u128 = 60 * 60 * 1_000_000_000;
 
 // pub const TEST_CONTRACT_ADDR: &str = "inj14hj2tavq8fpesdwxxcu44rty3hh90vhujaxlnz";
 
@@ -47,6 +53,14 @@ impl Project {
     fn store_code(app: &mut App) -> u64 {
         let contract = ContractWrapper::new(execute, instantiate, query);
         app.store_code(Box::new(contract))
+    }
+
+    #[track_caller]
+    pub fn wait(&mut self, delay_ns: u64) {
+        self.app.update_block(|block| {
+            block.time = block.time.plus_nanos(delay_ns);
+            block.height += delay_ns / 5_000_000_000;
+        });
     }
 
     #[track_caller]
