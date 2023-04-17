@@ -1,6 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
-    entry_point, from_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+    entry_point, from_binary, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult,
 };
 
 use cw20::Cw20ReceiveMsg;
@@ -97,12 +98,12 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::QueryProvider { address } => query_provider(deps, env, address),
-        // TODO
-        QueryMsg::QueryTokens {} => query_tokens(deps, env),
-        // TODO
-        QueryMsg::QueryBalances {} => query_balances(deps, env),
-        QueryMsg::QueryPrice { price_feed_id_str } => query_price(deps, env, price_feed_id_str),
+        QueryMsg::QueryProvider { address } => to_binary(&query_provider(deps, env, address)?),
+        QueryMsg::QueryTokens {} => to_binary(&query_tokens(deps, env)?),
+        QueryMsg::QueryBalances {} => to_binary(&query_balances(deps, env)?),
+        QueryMsg::QueryPrice { price_feed_id_str } => {
+            to_binary(&query_price(deps, env, price_feed_id_str)?)
+        }
     }
 }
 

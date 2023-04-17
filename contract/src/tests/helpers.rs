@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, Addr, Decimal, Empty, StdError, Uint128};
+use cosmwasm_std::{to_binary, Addr, Decimal, Empty, StdResult, Uint128};
 
 use cw20::Cw20Coin;
 
@@ -134,7 +134,7 @@ impl Project {
         swap_fee_rate: Option<Decimal>,
         window: Option<Uint128>,
         unbonding_period: Option<Uint128>,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -157,7 +157,7 @@ impl Project {
         token_addr: &Addr,
         symbol: &str,
         price_feed_id_str: &str,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -178,7 +178,7 @@ impl Project {
         sender: &str,
         token_addr: &Addr,
         amount: Uint128,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -198,7 +198,7 @@ impl Project {
         sender: &str,
         token_addr: &Addr,
         amount: Uint128,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -213,7 +213,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn claim(&mut self, sender: &str) -> Result<AppResponse, StdError> {
+    pub fn claim(&mut self, sender: &str) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -225,11 +225,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap_and_claim(
-        &mut self,
-        sender: &str,
-        token_addr: &Addr,
-    ) -> Result<AppResponse, StdError> {
+    pub fn swap_and_claim(&mut self, sender: &str, token_addr: &Addr) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
@@ -248,7 +244,7 @@ impl Project {
         sender: &str,
         token_addr: &Addr,
         amount: Uint128,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         let msg = cw20::Cw20ExecuteMsg::Send {
             contract: self.address.to_string(),
             amount,
@@ -272,7 +268,7 @@ impl Project {
         token_addr: &Addr,
         amount: Uint128,
         token_addr_out: &Addr,
-    ) -> Result<AppResponse, StdError> {
+    ) -> StdResult<AppResponse> {
         let msg = cw20::Cw20ExecuteMsg::Send {
             contract: self.address.to_string(),
             amount,
@@ -292,7 +288,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn query_provider(&self, address: &str) -> Result<Vec<Asset>, StdError> {
+    pub fn query_provider(&self, address: &str) -> StdResult<Vec<Asset>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryProvider {
@@ -302,14 +298,14 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn query_tokens(&self) -> Result<Vec<Token>, StdError> {
+    pub fn query_tokens(&self) -> StdResult<Vec<(Addr, Token)>> {
         self.app
             .wrap()
             .query_wasm_smart(self.address.clone(), &QueryMsg::QueryTokens {})
     }
 
     #[track_caller]
-    pub fn query_balances(&self) -> Result<Vec<Balance>, StdError> {
+    pub fn query_balances(&self) -> StdResult<Vec<Balance>> {
         self.app
             .wrap()
             .query_wasm_smart(self.address.clone(), &QueryMsg::QueryBalances {})
@@ -318,7 +314,7 @@ impl Project {
     // pyth test example
     // https://github.com/pyth-network/pyth-crosschain/blob/main/target_chains/cosmwasm/examples/cw-contract/src/contract.rs
     #[track_caller]
-    pub fn query_price(&self, price_feed_id_str: &str) -> Result<PriceFeedResponse, StdError> {
+    pub fn query_price(&self, price_feed_id_str: &str) -> StdResult<PriceFeedResponse> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryPrice {

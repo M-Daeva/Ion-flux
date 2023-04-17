@@ -17,7 +17,7 @@ pub const TOKENS: Map<&Addr, Token> = Map::new("tokens");
 
 #[cw_serde]
 pub struct Token {
-    pub symbol: String, // TODO: check if it's needed
+    pub symbol: String,
     pub price_feed_id_str: String,
     pub bonded: (Vec<Sample>, Uint128), // providing liquidity +, fee-sharing +
     pub unbonded: (Vec<Sample>, Uint128), // providing liquidity -, fee-sharing - | ready for withdrawing

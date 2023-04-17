@@ -3,7 +3,8 @@ use cosmwasm_std::{Addr, Timestamp, Uint128};
 use cw20::Cw20Coin;
 
 use crate::{
-    state::Asset,
+    messages::response::Balance,
+    state::{Asset, Sample, Token},
     tests::helpers::{
         Project, ADDR_ADMIN_INJ, ADDR_ALICE_INJ, ADDR_BOB_INJ, PRICE_FEED_ID_STR_ATOM,
         PRICE_FEED_ID_STR_LUNA, SYMBOL_ATOM, SYMBOL_LUNA, UNBONDING_PERIOD,
@@ -341,7 +342,6 @@ fn deposit_2_providers() {
         ]
     );
 
-    // wait UNBONDING_PERIOD / 2
     prj.wait((UNBONDING_PERIOD / 2) as u64);
 
     prj.deposit(ADDR_BOB_INJ, &token, mint_amount2.amount)
@@ -397,7 +397,6 @@ fn deposit_2_providers() {
         ]
     );
 
-    // wait UNBONDING_PERIOD / 2
     prj.wait((UNBONDING_PERIOD / 2) as u64);
 
     prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
@@ -428,7 +427,6 @@ fn deposit_2_providers() {
         ]
     );
 
-    // wait UNBONDING_PERIOD / 2
     prj.wait((UNBONDING_PERIOD / 2) as u64);
 
     prj.withdraw(ADDR_BOB_INJ, &token, mint_amount2.amount)
@@ -438,4 +436,148 @@ fn deposit_2_providers() {
 
     assert_eq!(prj.query_provider(ADDR_ALICE_INJ).unwrap(), vec![]);
     assert_eq!(prj.query_provider(ADDR_BOB_INJ).unwrap(), vec![]);
+}
+
+#[test]
+fn query_tokens() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(5u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(50u128),
+    };
+
+    let mut prj = Project::new();
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_BOB_INJ, &token, mint_amount2.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    prj.wait(UNBONDING_PERIOD as u64);
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_BOB_INJ, &token2, mint_amount2.amount)
+        .unwrap();
+
+    assert_eq!(
+        prj.query_tokens().unwrap(),
+        vec![
+            (
+                token,
+                Token {
+                    symbol: SYMBOL_ATOM.to_string(),
+                    price_feed_id_str: PRICE_FEED_ID_STR_ATOM.to_string(),
+                    bonded: (
+                        vec![
+                            Sample::new(
+                                Uint128::from(28u128),
+                                Timestamp::from_nanos(1571799219879305533u64),
+                            ),
+                            Sample::new(
+                                Uint128::from(5u128),
+                                Timestamp::from_nanos(1571801019879305533u64),
+                            ),
+                        ],
+                        Uint128::from(16u128),
+                    ),
+                    unbonded: (vec![], Uint128::from(0u128)),
+                    requested: (vec![], Uint128::from(0u128)),
+                    swapped_in: (vec![], Uint128::from(0u128)),
+                    swapped_out: (vec![], Uint128::from(0u128)),
+                },
+            ),
+            (
+                token2,
+                Token {
+                    symbol: SYMBOL_LUNA.to_string(),
+                    price_feed_id_str: PRICE_FEED_ID_STR_LUNA.to_string(),
+                    bonded: (
+                        vec![
+                            Sample::new(
+                                Uint128::from(27u128),
+                                Timestamp::from_nanos(1571799219879305533u64),
+                            ),
+                            Sample::new(
+                                Uint128::from(50u128),
+                                Timestamp::from_nanos(1571801019879305533u64),
+                            ),
+                        ],
+                        Uint128::from(38u128),
+                    ),
+                    unbonded: (vec![], Uint128::from(0u128)),
+                    requested: (vec![], Uint128::from(0u128)),
+                    swapped_in: (vec![], Uint128::from(0u128)),
+                    swapped_out: (vec![], Uint128::from(0u128)),
+                },
+            ),
+        ]
+    );
+}
+
+#[test]
+#[should_panic(expected = "Provider is not found!")]
+fn query_provider_empty() {
+    let (prj, ..) = default_init();
+
+    prj.query_provider(ADDR_BOB_INJ).unwrap();
+}
+
+#[test]
+fn query_balances() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(5u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(50u128),
+    };
+
+    let mut prj = Project::new();
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_BOB_INJ, &token, mint_amount2.amount)
+        .unwrap();
+    prj.deposit(ADDR_BOB_INJ, &token2, mint_amount2.amount)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    assert_eq!(
+        prj.query_balances().unwrap(),
+        vec![
+            Balance {
+                token_addr: token,
+                amount: Uint128::from(55u128),
+            },
+            Balance {
+                token_addr: token2,
+                amount: Uint128::from(55u128),
+            },
+        ]
+    );
 }

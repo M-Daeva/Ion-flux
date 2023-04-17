@@ -29,12 +29,8 @@ pub fn deposit(
         .load(deps.storage, &provider_addr)
         .unwrap_or_else(|_| vec![Asset::new(&token_addr, &timestamp)]);
 
-    // check if provider has asset
-    if provider
-        .iter()
-        .find(|x| x.token_addr == token_addr)
-        .is_none()
-    {
+    // if provider has no asset add it to list
+    if !provider.iter().any(|x| x.token_addr == token_addr) {
         provider.push(Asset::new(&token_addr, &timestamp));
     };
 

@@ -1,6 +1,9 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
 #[allow(unused_imports)] // preventing optimizer warning message
+use cosmwasm_std::Addr;
+
+#[allow(unused_imports)] // preventing optimizer warning message
 use crate::{
     messages::response::Balance,
     state::{Asset, Token},
@@ -14,7 +17,7 @@ use pyth_sdk_cw::PriceFeedResponse;
 pub enum QueryMsg {
     #[returns(Vec<Asset>)]
     QueryProvider { address: String },
-    #[returns(Vec<Token>)]
+    #[returns(Vec<(Addr, Token)>)]
     QueryTokens {},
     #[returns(Vec<Balance>)]
     QueryBalances {},
