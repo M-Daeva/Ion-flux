@@ -11,7 +11,7 @@ use crate::{
         execute::{claim, swap_and_claim, unbond, update_config, update_token, withdraw},
         instantiate::init,
         migrate::migrate_contract,
-        query::{query_balances, query_price, query_provider, query_tokens},
+        query::{query_balances, query_price, query_providers, query_tokens},
         receive::{deposit, swap},
     },
     error::ContractError,
@@ -98,9 +98,9 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::QueryProvider { address } => to_binary(&query_provider(deps, env, address)?),
-        QueryMsg::QueryTokens {} => to_binary(&query_tokens(deps, env)?),
-        QueryMsg::QueryBalances {} => to_binary(&query_balances(deps, env)?),
+        QueryMsg::QueryProviders { address } => to_binary(&query_providers(deps, env, address)?),
+        QueryMsg::QueryTokens { address } => to_binary(&query_tokens(deps, env, address)?),
+        QueryMsg::QueryBalances { address } => to_binary(&query_balances(deps, env, address)?),
         QueryMsg::QueryPrice { price_feed_id_str } => {
             to_binary(&query_price(deps, env, price_feed_id_str)?)
         }

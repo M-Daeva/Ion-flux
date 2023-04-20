@@ -13,8 +13,8 @@ use crate::{
 };
 
 pub const ADDR_ADMIN_INJ: &str = "inj1amp7dv5fvjyx95ea4grld6jmu9v207awtefwce";
-pub const ADDR_ALICE_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
-pub const ADDR_BOB_INJ: &str = "inj1hag3kx8f9ypnssw7aqnq9e82t2zgt0g0ac2rru";
+pub const ADDR_ALICE_INJ: &str = "inj1hag3kx8f9ypnssw7aqnq9e82t2zgt0g0ac2rru";
+pub const ADDR_BOB_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
 
 pub const SYMBOL_ATOM: &str = "ATOM";
 pub const SYMBOL_LUNA: &str = "LUNA";
@@ -288,27 +288,33 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn query_provider(&self, address: &str) -> StdResult<Vec<Asset>> {
+    pub fn query_providers(&self, address: Option<&str>) -> StdResult<Vec<(Addr, Vec<Asset>)>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
-            &QueryMsg::QueryProvider {
-                address: address.to_string(),
+            &QueryMsg::QueryProviders {
+                address: address.map(|x| x.to_string()),
             },
         )
     }
 
     #[track_caller]
-    pub fn query_tokens(&self) -> StdResult<Vec<(Addr, Token)>> {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.address.clone(), &QueryMsg::QueryTokens {})
+    pub fn query_tokens(&self, address: Option<&str>) -> StdResult<Vec<(Addr, Token)>> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryTokens {
+                address: address.map(|x| x.to_string()),
+            },
+        )
     }
 
     #[track_caller]
-    pub fn query_balances(&self) -> StdResult<Vec<Balance>> {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.address.clone(), &QueryMsg::QueryBalances {})
+    pub fn query_balances(&self, address: Option<&str>) -> StdResult<Vec<Balance>> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryBalances {
+                address: address.map(|x| x.to_string()),
+            },
+        )
     }
 
     // pyth test example

@@ -9,28 +9,63 @@ use crate::{
     state::{Asset, Pyth, Token, PROVIDERS, PYTH, TOKENS},
 };
 
-pub fn query_provider(deps: Deps, _env: Env, address: String) -> StdResult<Vec<Asset>> {
-    let provider_addr = deps.api.addr_validate(&address)?;
-    let provider = PROVIDERS
-        .load(deps.storage, &provider_addr)
-        .map_err(|_| to_std_err(ContractError::ProviderIsNotFound {}))?;
+// TODO: add queryApr(token_addr: &Addr) -> Uint128 and queryAprList() -> Vec<Addr, Uint128>
+// apr = swap_fee_rate * swapped_in_sma * token_weight / token_bonded_total
 
-    Ok(provider)
+pub fn query_providers(
+    deps: Deps,
+    _env: Env,
+    address: Option<String>,
+) -> StdResult<Vec<(Addr, Vec<Asset>)>> {
+    match address {
+        Some(x) => {
+            let provider_addr = deps.api.addr_validate(&x)?;
+            let provider = PROVIDERS
+                .load(deps.storage, &provider_addr)
+                .map_err(|_| to_std_err(ContractError::ProviderIsNotFound {}))?;
+
+            Ok(vec![(provider_addr, provider)])
+        }
+        _ => {
+            let providers: Vec<(Addr, Vec<Asset>)> = PROVIDERS
+                .range(deps.storage, None, None, Order::Ascending)
+                .map(|x| x.unwrap())
+                .collect();
+
+            Ok(providers)
+        }
+    }
 }
 
-pub fn query_tokens(deps: Deps, _env: Env) -> StdResult<Vec<(Addr, Token)>> {
-    let tokens: Vec<(Addr, Token)> = TOKENS
-        .range(deps.storage, None, None, Order::Ascending)
-        .map(|x| x.unwrap())
-        .collect();
+pub fn query_tokens(
+    deps: Deps,
+    _env: Env,
+    address: Option<String>,
+) -> StdResult<Vec<(Addr, Token)>> {
+    match address {
+        Some(x) => {
+            let token_addr = deps.api.addr_validate(&x)?;
+            let token = TOKENS
+                .load(deps.storage, &token_addr)
+                .map_err(|_| to_std_err(ContractError::TokenIsNotFound {}))?;
 
-    Ok(tokens)
+            Ok(vec![(token_addr, token)])
+        }
+        _ => {
+            let tokens: Vec<(Addr, Token)> = TOKENS
+                .range(deps.storage, None, None, Order::Ascending)
+                .map(|x| x.unwrap())
+                .collect();
+
+            Ok(tokens)
+        }
+    }
 }
 
-pub fn query_balances(deps: Deps, env: Env) -> StdResult<Vec<Balance>> {
+pub fn query_balances(deps: Deps, env: Env, address: Option<String>) -> StdResult<Vec<Balance>> {
     let mut response_list: Vec<Balance> = vec![];
 
-    for (addr, _token) in query_tokens(deps, env.clone())? {
+    for (addr, _token) in query_tokens(deps, env.clone(), address)? {
         let msg = Cw20QueryMsg::Balance {
             address: env.contract.address.to_string(),
         };
@@ -48,6 +83,7 @@ pub fn query_balances(deps: Deps, env: Env) -> StdResult<Vec<Balance>> {
     Ok(response_list)
 }
 
+// TODO: use price_basket
 pub fn query_price(
     deps: Deps,
     _env: Env,

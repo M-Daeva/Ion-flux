@@ -144,15 +144,18 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![Asset {
-            token_addr: Addr::unchecked("contract1"),
-            bonded: Uint128::from(5u128),
-            unbonded: Uint128::from(2u128),
-            requested: Uint128::from(1u128),
-            counter: Timestamp::from_nanos(1571804619879305533u64),
-            rewards: Uint128::from(0u128),
-        }]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![Asset {
+                token_addr: token.clone(),
+                bonded: Uint128::from(5u128),
+                unbonded: Uint128::from(2u128),
+                requested: Uint128::from(1u128),
+                counter: Timestamp::from_nanos(1571804619879305533u64),
+                rewards: Uint128::from(0u128),
+            }]
+        )
     );
 
     // wait UNBONDING_PERIOD / 2
@@ -163,15 +166,18 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![Asset {
-            token_addr: Addr::unchecked("contract1"),
-            bonded: Uint128::from(0u128),
-            unbonded: Uint128::from(2u128),
-            requested: Uint128::from(6u128),
-            counter: Timestamp::from_nanos(1571806419879305533u64),
-            rewards: Uint128::from(0u128),
-        }]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![Asset {
+                token_addr: token.clone(),
+                bonded: Uint128::from(0u128),
+                unbonded: Uint128::from(2u128),
+                requested: Uint128::from(6u128),
+                counter: Timestamp::from_nanos(1571806419879305533u64),
+                rewards: Uint128::from(0u128),
+            }]
+        )
     );
 
     // deposit 9 LUNA
@@ -179,25 +185,28 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(2u128),
-                requested: Uint128::from(6u128),
-                counter: Timestamp::from_nanos(1571806419879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(9u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(0u128),
-                counter: Timestamp::from_nanos(1571802819879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(2u128),
+                    requested: Uint128::from(6u128),
+                    counter: Timestamp::from_nanos(1571806419879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(9u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(0u128),
+                    counter: Timestamp::from_nanos(1571802819879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
 
     // wait UNBONDING_PERIOD / 2
@@ -208,25 +217,28 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(2u128),
-                requested: Uint128::from(6u128),
-                counter: Timestamp::from_nanos(1571806419879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(6u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(3u128),
-                counter: Timestamp::from_nanos(1571808219879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(2u128),
+                    requested: Uint128::from(6u128),
+                    counter: Timestamp::from_nanos(1571806419879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(6u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(3u128),
+                    counter: Timestamp::from_nanos(1571808219879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
 
     // wait UNBONDING_PERIOD / 2
@@ -237,25 +249,28 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(8u128),
-                requested: Uint128::from(0u128),
-                counter: Timestamp::from_nanos(1571806419879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(3u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(6u128),
-                counter: Timestamp::from_nanos(1571810019879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(8u128),
+                    requested: Uint128::from(0u128),
+                    counter: Timestamp::from_nanos(1571806419879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(3u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(6u128),
+                    counter: Timestamp::from_nanos(1571810019879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
 
     // withdraw 8 ATOM
@@ -263,15 +278,18 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![Asset {
-            token_addr: Addr::unchecked("contract2"),
-            bonded: Uint128::from(3u128),
-            unbonded: Uint128::from(0u128),
-            requested: Uint128::from(6u128),
-            counter: Timestamp::from_nanos(1571810019879305533u64),
-            rewards: Uint128::from(0u128),
-        },]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![Asset {
+                token_addr: token2.clone(),
+                bonded: Uint128::from(3u128),
+                unbonded: Uint128::from(0u128),
+                requested: Uint128::from(6u128),
+                counter: Timestamp::from_nanos(1571810019879305533u64),
+                rewards: Uint128::from(0u128),
+            },]
+        )
     );
 
     // unbond 3 LUNA
@@ -285,7 +303,10 @@ fn deposit_unbond_withdraw_loop() {
     prj.withdraw(ADDR_ALICE_INJ, &token2, Uint128::from(9u128))
         .unwrap();
 
-    assert_eq!(prj.query_provider(ADDR_ALICE_INJ).unwrap(), vec![]);
+    assert_eq!(
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap(),
+        vec![(Addr::unchecked(ADDR_ALICE_INJ), vec![])]
+    );
 }
 
 #[test]
@@ -321,25 +342,28 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(5u128),
-                counter: Timestamp::from_nanos(1571801019879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(5u128),
-                counter: Timestamp::from_nanos(1571801019879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(5u128),
+                    counter: Timestamp::from_nanos(1571801019879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(5u128),
+                    counter: Timestamp::from_nanos(1571801019879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
 
     prj.wait((UNBONDING_PERIOD / 2) as u64);
@@ -355,46 +379,52 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_provider(ADDR_ALICE_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(5u128),
-                counter: Timestamp::from_nanos(1571801019879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(5u128),
-                counter: Timestamp::from_nanos(1571801019879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_ALICE_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(5u128),
+                    counter: Timestamp::from_nanos(1571801019879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(5u128),
+                    counter: Timestamp::from_nanos(1571801019879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
     assert_eq!(
-        prj.query_provider(ADDR_BOB_INJ).unwrap(),
-        vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(50u128),
-                counter: Timestamp::from_nanos(1571802819879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(50u128),
-                counter: Timestamp::from_nanos(1571802819879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-        ]
+        prj.query_providers(Some(ADDR_BOB_INJ)).unwrap()[0],
+        (
+            Addr::unchecked(ADDR_BOB_INJ),
+            vec![
+                Asset {
+                    token_addr: token.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(50u128),
+                    counter: Timestamp::from_nanos(1571802819879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+                Asset {
+                    token_addr: token2.clone(),
+                    bonded: Uint128::from(0u128),
+                    unbonded: Uint128::from(0u128),
+                    requested: Uint128::from(50u128),
+                    counter: Timestamp::from_nanos(1571802819879305533u64),
+                    rewards: Uint128::from(0u128),
+                },
+            ]
+        )
     );
 
     prj.wait((UNBONDING_PERIOD / 2) as u64);
@@ -404,26 +434,35 @@ fn deposit_2_providers() {
     prj.withdraw(ADDR_ALICE_INJ, &token2, mint_amount.amount)
         .unwrap();
 
-    assert_eq!(prj.query_provider(ADDR_ALICE_INJ).unwrap(), vec![]);
     assert_eq!(
-        prj.query_provider(ADDR_BOB_INJ).unwrap(),
+        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap(),
+        vec![(Addr::unchecked(ADDR_ALICE_INJ), vec![])]
+    );
+    assert_eq!(
+        prj.query_providers(None).unwrap(),
         vec![
-            Asset {
-                token_addr: Addr::unchecked("contract1"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(50u128),
-                counter: Timestamp::from_nanos(1571802819879305533u64),
-                rewards: Uint128::from(0u128),
-            },
-            Asset {
-                token_addr: Addr::unchecked("contract2"),
-                bonded: Uint128::from(0u128),
-                unbonded: Uint128::from(0u128),
-                requested: Uint128::from(50u128),
-                counter: Timestamp::from_nanos(1571802819879305533u64),
-                rewards: Uint128::from(0u128),
-            },
+            (Addr::unchecked(ADDR_ALICE_INJ), vec![]),
+            (
+                Addr::unchecked(ADDR_BOB_INJ),
+                vec![
+                    Asset {
+                        token_addr: Addr::unchecked("contract1"),
+                        bonded: Uint128::from(0u128),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(50u128),
+                        counter: Timestamp::from_nanos(1571802819879305533u64),
+                        rewards: Uint128::from(0u128),
+                    },
+                    Asset {
+                        token_addr: Addr::unchecked("contract2"),
+                        bonded: Uint128::from(0u128),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(50u128),
+                        counter: Timestamp::from_nanos(1571802819879305533u64),
+                        rewards: Uint128::from(0u128),
+                    },
+                ]
+            ),
         ]
     );
 
@@ -434,8 +473,13 @@ fn deposit_2_providers() {
     prj.withdraw(ADDR_BOB_INJ, &token2, mint_amount2.amount)
         .unwrap();
 
-    assert_eq!(prj.query_provider(ADDR_ALICE_INJ).unwrap(), vec![]);
-    assert_eq!(prj.query_provider(ADDR_BOB_INJ).unwrap(), vec![]);
+    assert_eq!(
+        prj.query_providers(None).unwrap(),
+        vec![
+            (Addr::unchecked(ADDR_ALICE_INJ), vec![]),
+            (Addr::unchecked(ADDR_BOB_INJ), vec![]),
+        ]
+    );
 }
 
 #[test]
@@ -473,7 +517,7 @@ fn query_tokens() {
         .unwrap();
 
     assert_eq!(
-        prj.query_tokens().unwrap(),
+        prj.query_tokens(None).unwrap(),
         vec![
             (
                 token,
@@ -532,7 +576,7 @@ fn query_tokens() {
 fn query_provider_empty() {
     let (prj, ..) = default_init();
 
-    prj.query_provider(ADDR_BOB_INJ).unwrap();
+    prj.query_providers(Some(ADDR_BOB_INJ)).unwrap();
 }
 
 #[test]
@@ -568,7 +612,7 @@ fn query_balances() {
         .unwrap();
 
     assert_eq!(
-        prj.query_balances().unwrap(),
+        prj.query_balances(None).unwrap(),
         vec![
             Balance {
                 token_addr: token,
