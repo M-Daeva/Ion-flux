@@ -10,18 +10,19 @@ pub struct Config {
     pub swap_fee_rate: Decimal,
     pub window: Uint128,
     pub unbonding_period: Uint128,
+    pub price_age: Uint128,
 }
 
 // key - token_addr: &Addr
 pub const TOKENS: Map<&Addr, Token> = Map::new("tokens");
 
+// time series/sma values reflecting overall liquidity movement
 #[cw_serde]
 pub struct Token {
     pub symbol: String,
     pub price_feed_id_str: String,
-    pub bonded: (Vec<Sample>, Uint128), // providing liquidity +, fee-sharing +
-    pub unbonded: (Vec<Sample>, Uint128), // providing liquidity -, fee-sharing - | ready for withdrawing
-    pub requested: (Vec<Sample>, Uint128), // providing liquidity +, fee-sharing - | will become unbonded when time >= counter
+    pub bonded: (Vec<Sample>, Uint128),
+    pub requested: (Vec<Sample>, Uint128),
     pub swapped_in: (Vec<Sample>, Uint128),
     pub swapped_out: (Vec<Sample>, Uint128),
 }
@@ -34,7 +35,6 @@ impl Token {
             symbol: symbol.to_string(),
             price_feed_id_str: price_feed_id_str.to_string(),
             bonded: (vec![], zero),
-            unbonded: (vec![], zero),
             requested: (vec![], zero),
             swapped_in: (vec![], zero),
             swapped_out: (vec![], zero),
@@ -45,12 +45,13 @@ impl Token {
 // key - address: &Addr
 pub const PROVIDERS: Map<&Addr, Vec<Asset>> = Map::new("providers");
 
+// cumulative values reflecting providers balances state
 #[cw_serde]
 pub struct Asset {
     pub token_addr: Addr,
     pub bonded: Uint128,    // providing liquidity +, fee-sharing +
     pub unbonded: Uint128,  // providing liquidity -, fee-sharing - | ready for withdrawing
-    pub requested: Uint128, // providing liquidity +, fee-sharing - | will become unbonded when time >= counter
+    pub requested: Uint128, // providing liquidity +, fee-sharing - | will be unbonded when time >= counter
     pub counter: Timestamp,
     pub rewards: Uint128,
 }

@@ -43,4 +43,7 @@ pub enum ContractError {
 
     #[error("Sender does not have access permissions!")]
     Unauthorized {},
+
+    #[error("Can not get prices!")]
+    NoPrices {},
 }

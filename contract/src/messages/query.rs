@@ -1,7 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
 #[allow(unused_imports)] // preventing optimizer warning message
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, Decimal};
 
 #[allow(unused_imports)] // preventing optimizer warning message
 use crate::{
@@ -9,18 +9,17 @@ use crate::{
     state::{Asset, Token},
 };
 
-#[allow(unused_imports)] // preventing optimizer warning message
-use pyth_sdk_cw::PriceFeedResponse;
-
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
+    #[returns(Vec<(Addr, Decimal)>)]
+    QueryAprs { address_list: Vec<String> },
     #[returns(Vec<(Addr, Vec<Asset>)>)]
-    QueryProviders { address: Option<String> },
+    QueryProviders { address_list: Vec<String> },
     #[returns(Vec<(Addr, Token)>)]
-    QueryTokens { address: Option<String> },
+    QueryTokens { address_list: Vec<String> },
     #[returns(Vec<Balance>)]
-    QueryBalances { address: Option<String> },
-    #[returns(PriceFeedResponse)]
-    QueryPrice { price_feed_id_str: String },
+    QueryBalances { address_list: Vec<String> },
+    #[returns(Vec<(Addr, Decimal)>)]
+    QueryPrices { address_list: Vec<String> },
 }

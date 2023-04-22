@@ -11,8 +11,8 @@ use crate::{
         execute::{claim, swap_and_claim, unbond, update_config, update_token, withdraw},
         instantiate::init,
         migrate::migrate_contract,
-        query::{query_balances, query_price, query_providers, query_tokens},
-        receive::{deposit, swap},
+        query::{query_aprs, query_balances, query_prices, query_providers, query_tokens},
+        receive::{deposit, swap, swap_mocked},
     },
     error::ContractError,
     messages::{
@@ -47,6 +47,7 @@ pub fn execute(
             swap_fee_rate,
             window,
             unbonding_period,
+            price_age,
         } => update_config(
             deps,
             env,
@@ -55,6 +56,7 @@ pub fn execute(
             swap_fee_rate,
             window,
             unbonding_period,
+            price_age,
         ),
         ExecuteMsg::UpdateToken {
             token_addr,
@@ -87,9 +89,11 @@ pub fn receive(
 
     match from_binary(&msg)? {
         ReceiveMsg::Deposit {} => deposit(deps, env, info, sender, amount),
-        // TODO
-        ReceiveMsg::Swap { token_addr_out } => {
-            swap(deps, env, info, sender, amount, token_addr_out)
+        ReceiveMsg::Swap { token_out_addr } => {
+            swap(deps, env, info, sender, amount, token_out_addr)
+        }
+        ReceiveMsg::SwapMocked { token_out_addr } => {
+            swap_mocked(deps, env, info, sender, amount, token_out_addr)
         }
     }
 }
@@ -98,11 +102,18 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::QueryProviders { address } => to_binary(&query_providers(deps, env, address)?),
-        QueryMsg::QueryTokens { address } => to_binary(&query_tokens(deps, env, address)?),
-        QueryMsg::QueryBalances { address } => to_binary(&query_balances(deps, env, address)?),
-        QueryMsg::QueryPrice { price_feed_id_str } => {
-            to_binary(&query_price(deps, env, price_feed_id_str)?)
+        QueryMsg::QueryAprs { address_list } => to_binary(&query_aprs(deps, env, address_list)?),
+        QueryMsg::QueryProviders { address_list } => {
+            to_binary(&query_providers(deps, env, address_list)?)
+        }
+        QueryMsg::QueryTokens { address_list } => {
+            to_binary(&query_tokens(deps, env, address_list)?)
+        }
+        QueryMsg::QueryBalances { address_list } => {
+            to_binary(&query_balances(deps, env, address_list)?)
+        }
+        QueryMsg::QueryPrices { address_list } => {
+            to_binary(&query_prices(deps, env, address_list)?)
         }
     }
 }

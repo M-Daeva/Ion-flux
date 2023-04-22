@@ -1,13 +1,14 @@
-use cosmwasm_std::{Addr, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Decimal, Timestamp, Uint128};
 
 use cw20::Cw20Coin;
 
 use crate::{
+    actions::math::{str_to_dec, u128_to_dec},
     messages::response::Balance,
     state::{Asset, Sample, Token},
     tests::helpers::{
         Project, ADDR_ADMIN_INJ, ADDR_ALICE_INJ, ADDR_BOB_INJ, PRICE_FEED_ID_STR_ATOM,
-        PRICE_FEED_ID_STR_LUNA, SYMBOL_ATOM, SYMBOL_LUNA, UNBONDING_PERIOD,
+        PRICE_FEED_ID_STR_LUNA, SWAP_FEE_RATE, SYMBOL_ATOM, SYMBOL_LUNA, UNBONDING_PERIOD,
     },
 };
 
@@ -144,7 +145,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![Asset {
@@ -166,7 +167,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![Asset {
@@ -185,7 +186,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![
@@ -217,7 +218,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![
@@ -249,7 +250,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![
@@ -278,7 +279,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![Asset {
@@ -304,7 +305,7 @@ fn deposit_unbond_withdraw_loop() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap(),
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap(),
         vec![(Addr::unchecked(ADDR_ALICE_INJ), vec![])]
     );
 }
@@ -342,7 +343,7 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![
@@ -379,7 +380,7 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_ALICE_INJ),
             vec![
@@ -403,7 +404,7 @@ fn deposit_2_providers() {
         )
     );
     assert_eq!(
-        prj.query_providers(Some(ADDR_BOB_INJ)).unwrap()[0],
+        prj.query_providers(vec![ADDR_BOB_INJ]).unwrap()[0],
         (
             Addr::unchecked(ADDR_BOB_INJ),
             vec![
@@ -435,11 +436,11 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(Some(ADDR_ALICE_INJ)).unwrap(),
+        prj.query_providers(vec![ADDR_ALICE_INJ]).unwrap(),
         vec![(Addr::unchecked(ADDR_ALICE_INJ), vec![])]
     );
     assert_eq!(
-        prj.query_providers(None).unwrap(),
+        prj.query_providers(vec![]).unwrap(),
         vec![
             (Addr::unchecked(ADDR_ALICE_INJ), vec![]),
             (
@@ -474,7 +475,7 @@ fn deposit_2_providers() {
         .unwrap();
 
     assert_eq!(
-        prj.query_providers(None).unwrap(),
+        prj.query_providers(vec![]).unwrap(),
         vec![
             (Addr::unchecked(ADDR_ALICE_INJ), vec![]),
             (Addr::unchecked(ADDR_BOB_INJ), vec![]),
@@ -517,7 +518,7 @@ fn query_tokens() {
         .unwrap();
 
     assert_eq!(
-        prj.query_tokens(None).unwrap(),
+        prj.query_tokens(vec![]).unwrap(),
         vec![
             (
                 token,
@@ -537,7 +538,6 @@ fn query_tokens() {
                         ],
                         Uint128::from(16u128),
                     ),
-                    unbonded: (vec![], Uint128::from(0u128)),
                     requested: (vec![], Uint128::from(0u128)),
                     swapped_in: (vec![], Uint128::from(0u128)),
                     swapped_out: (vec![], Uint128::from(0u128)),
@@ -561,7 +561,6 @@ fn query_tokens() {
                         ],
                         Uint128::from(38u128),
                     ),
-                    unbonded: (vec![], Uint128::from(0u128)),
                     requested: (vec![], Uint128::from(0u128)),
                     swapped_in: (vec![], Uint128::from(0u128)),
                     swapped_out: (vec![], Uint128::from(0u128)),
@@ -572,11 +571,70 @@ fn query_tokens() {
 }
 
 #[test]
-#[should_panic(expected = "Provider is not found!")]
-fn query_provider_empty() {
+fn swap_default() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount3 = Cw20Coin {
+        address: ADDR_ADMIN_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new();
+
+    let token = prj.create_cw20(
+        SYMBOL_ATOM,
+        vec![
+            mint_amount.clone(),
+            mint_amount2.clone(),
+            mint_amount3.clone(),
+        ],
+    );
+    let token2 = prj.create_cw20(
+        SYMBOL_LUNA,
+        vec![mint_amount.clone(), mint_amount2, mint_amount3.clone()],
+    );
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    let amount_in = mint_amount3.amount / Uint128::from(10u128);
+    let amount_out = ((Decimal::one() - str_to_dec(SWAP_FEE_RATE)) * u128_to_dec(amount_in)
+        / u128_to_dec(Uint128::from(2u128)))
+    .to_uint_floor();
+
+    prj.swap_mocked(ADDR_ADMIN_INJ, amount_in, &token, &token2)
+        .unwrap();
+
+    assert_eq!(
+        prj.get_cw20_balance(token, ADDR_ADMIN_INJ),
+        mint_amount3.amount - amount_in
+    );
+    assert_eq!(
+        prj.get_cw20_balance(token2, ADDR_ADMIN_INJ),
+        mint_amount3.amount + amount_out
+    );
+}
+
+#[test]
+fn query_provider_not_found() {
     let (prj, ..) = default_init();
 
-    prj.query_providers(Some(ADDR_BOB_INJ)).unwrap();
+    assert_eq!(prj.query_providers(vec![ADDR_BOB_INJ]).unwrap(), vec![]);
 }
 
 #[test]
@@ -612,7 +670,7 @@ fn query_balances() {
         .unwrap();
 
     assert_eq!(
-        prj.query_balances(None).unwrap(),
+        prj.query_balances(vec![]).unwrap(),
         vec![
             Balance {
                 token_addr: token,

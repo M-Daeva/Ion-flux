@@ -18,6 +18,7 @@ const PYTH_CONTRACT_ADDR: &str = "inj1z60tg0tekdzcasenhuuwq3htjcd5slmgf7gpez";
 const SWAP_FEE_RATE: &str = "0.003";
 const WINDOW: u128 = 30 * 60 * 1_000_000_000;
 const UNBONDING_PERIOD: u128 = 60 * 60 * 1_000_000_000;
+const PRICE_AGE: u128 = 4_000_000;
 
 pub fn init(
     deps: DepsMut,
@@ -32,6 +33,7 @@ pub fn init(
             swap_fee_rate: str_to_dec(SWAP_FEE_RATE),
             window: Uint128::from(WINDOW),
             unbonding_period: Uint128::from(UNBONDING_PERIOD),
+            price_age: Uint128::from(PRICE_AGE),
         },
     )?;
 

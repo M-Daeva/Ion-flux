@@ -1,40 +1,15 @@
 use std::ops::Div;
 
-use cosmwasm_std::{Decimal, StdError, StdResult, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Decimal, StdError, StdResult, Timestamp, Uint128};
 
-use crate::state::Sample;
+use crate::state::{Asset, Sample, Token};
 
 pub fn str_to_dec(s: &str) -> Decimal {
     s.to_string().parse::<Decimal>().unwrap()
 }
 
-pub fn str_vec_to_dec_vec(str_vec: Vec<&str>) -> Vec<Decimal> {
-    str_vec.iter().map(|&x| str_to_dec(x)).collect()
-}
-
-pub fn u128_to_dec(num: u128) -> Decimal {
-    Decimal::from_ratio(Uint128::new(num), Uint128::one())
-}
-
-pub fn dec_to_u128(dec: Decimal) -> u128 {
-    dec.ceil().atomics().u128() / 1_000_000_000_000_000_000
-}
-
-pub fn uint128_to_dec(num: Uint128) -> Decimal {
-    Decimal::from_ratio(num, Uint128::one())
-}
-
-pub fn dec_to_uint128(dec: Decimal) -> Uint128 {
-    dec.ceil()
-        .atomics()
-        .div(Uint128::from(1_000_000_000_000_000_000_u128))
-}
-
-pub fn u128_vec_to_uint128_vec(u128_vec: Vec<u128>) -> Vec<Uint128> {
-    u128_vec
-        .iter()
-        .map(|&x| Uint128::from(x as u128))
-        .collect::<Vec<Uint128>>()
+pub fn u128_to_dec<T: Into<Uint128>>(num: T) -> Decimal {
+    Decimal::from_ratio(num.into(), Uint128::one())
 }
 
 // interpolation for linear function y(t), t in range t1...t2, y in range y1...y2
@@ -226,11 +201,10 @@ pub fn calc_sma(
     Ok((framed_list, sma))
 }
 
-// volume_ratio = (unbonded + requested + swapped_out) / (bonded + (1 - swap_fee_rate) * swapped_in)
+// volume_ratio = (requested + swapped_out) / (bonded + (1 - swap_fee_rate) * swapped_in)
 // all values used as SMA
 pub fn calc_volume_ratio(
     bonded: Uint128,
-    unbonded: Uint128,
     requested: Uint128,
     swapped_in: Uint128,
     swapped_out: Uint128,
@@ -247,8 +221,8 @@ pub fn calc_volume_ratio(
         ))?
     }
 
-    let volume_in = uint128_to_dec(bonded) + (one - swap_fee_rate) * uint128_to_dec(swapped_in);
-    let volume_out = uint128_to_dec(unbonded + requested + swapped_out);
+    let volume_in = u128_to_dec(bonded) + (one - swap_fee_rate) * u128_to_dec(swapped_in);
+    let volume_out = u128_to_dec(requested + swapped_out);
 
     if !volume_in.is_zero() && !volume_out.is_zero() {
         Ok((volume_out / volume_in).clamp(one / max_ratio, max_ratio))
@@ -259,22 +233,119 @@ pub fn calc_volume_ratio(
     }
 }
 
-// TODO: make it actual function
-// pub fn calc_provider_reward() {
-//     let token_weight = calc_volume_ratio(bonded, unbonded, requested, swapped_in, swapped_out, swap_fee_rate);
-//     let allocation = token_amount_bonded_by_one_provider / token_amount_bonded_by_all_providers;
-//     let provider_weight = token_weight * allocation;
-//     let swap_fee = swap_fee_rate * swapped_in;
-//     let provider_reward = swap_fee * provider_weight;
-// }
+// provider_rewards = provider_power * swap_fee
+// swap_fee = swap_fee_rate * amount_in
+// provider_power = sum_for_each_asset(allocation * token_weight)
+// allocation = asset_bonded / sum_for_each_provider(asset_bonded)
+// token_weight = volume_ratio / sum_for_each_token(volume_ratio)
+pub fn calc_provider_rewards(
+    amount_in: Uint128,
+    token_in_price: Decimal,
+    token_out_price: Decimal,
+    swap_fee_rate: Decimal,
+    provider_list: Vec<(Addr, Vec<Asset>)>,
+    token_list: Vec<(Addr, Token)>,
+) -> StdResult<(Vec<(Addr, Uint128)>, Uint128)> {
+    let mut provider_rewards_list: Vec<(Addr, Uint128)> = vec![];
+
+    // distribute rewards to providers
+    let swap_fee = swap_fee_rate * u128_to_dec(amount_in);
+
+    // get total values for volume ratio and bonded tokens
+    let mut volume_ratio_list: Vec<(Addr, Decimal)> = vec![];
+    let mut volume_ratio_sum = Decimal::zero();
+    let mut bonded_total: Vec<(Addr, Uint128)> = vec![];
+
+    for (token_addr, token) in token_list {
+        let bonded_by_all_providers =
+            provider_list
+                .iter()
+                .fold(Uint128::zero(), |acc, (_, asset_list)| {
+                    let asset_default = Asset::new(&token_addr, &Timestamp::default());
+
+                    let asset = asset_list
+                        .iter()
+                        .find(|x| x.token_addr == token_addr)
+                        .unwrap_or(&asset_default);
+
+                    acc + asset.bonded
+                });
+
+        let volume_ratio = calc_volume_ratio(
+            token.bonded.1,
+            token.requested.1,
+            token.swapped_in.1,
+            token.swapped_out.1,
+            swap_fee_rate,
+        )?;
+
+        volume_ratio_list.push((token_addr.clone(), volume_ratio));
+        volume_ratio_sum += volume_ratio;
+
+        bonded_total.push((token_addr, bonded_by_all_providers));
+    }
+
+    // calc rewards for each provider
+    for (provider_addr, asset_list) in provider_list {
+        let mut provider_power = Decimal::zero();
+
+        for asset in asset_list {
+            // calc allocation
+            if asset.bonded.is_zero() {
+                continue;
+            }
+
+            let bonded_default = (asset.token_addr.clone(), Uint128::zero());
+
+            let (_, bonded_total_amount) = bonded_total
+                .iter()
+                .find(|(addr, _)| addr == &asset.token_addr)
+                .unwrap_or(&bonded_default);
+
+            let allocation = if bonded_total_amount.is_zero() {
+                Decimal::one()
+            } else {
+                u128_to_dec(asset.bonded) / u128_to_dec(*bonded_total_amount)
+            };
+
+            let volume_ratio_default = (asset.token_addr.clone(), Decimal::zero());
+
+            let (_, volume_ratio_value) = volume_ratio_list
+                .iter()
+                .find(|(addr, _)| addr == &asset.token_addr)
+                .unwrap_or(&volume_ratio_default);
+
+            let token_weight = volume_ratio_value / volume_ratio_sum;
+            let asset_power = allocation * token_weight;
+
+            provider_power += asset_power;
+        }
+
+        let provider_rewards = (provider_power * swap_fee).to_uint_floor();
+        provider_rewards_list.push((provider_addr, provider_rewards));
+    }
+
+    let amount_in_clean = amount_in - swap_fee.to_uint_ceil();
+    let cost_in = token_in_price * u128_to_dec(amount_in_clean);
+    let amount_out = (cost_in / token_out_price).to_uint_floor();
+
+    Ok((provider_rewards_list, amount_out))
+}
 
 #[cfg(test)]
 pub mod test {
+    use cosmwasm_std::Decimal;
+
     use super::{
-        calc_area, calc_average, calc_sma, calc_volume_ratio, frame_list, interpolate, str_to_dec,
-        Sample,
+        calc_area, calc_average, calc_provider_rewards, calc_sma, calc_volume_ratio, frame_list,
+        interpolate, str_to_dec, u128_to_dec, Addr, Asset, Sample, StdError, Timestamp, Token,
+        Uint128,
     };
-    use cosmwasm_std::{StdError, Timestamp, Uint128};
+
+    use crate::tests::helpers::{
+        ADDR_ALICE_INJ, ADDR_BOB_INJ, PRICE_ATOM, PRICE_FEED_ID_STR_ATOM, PRICE_FEED_ID_STR_LUNA,
+        PRICE_LUNA, SWAP_FEE_RATE, SYMBOL_ATOM, SYMBOL_LUNA, TOKEN_ADDR_ATOM, TOKEN_ADDR_LUNA,
+    };
 
     #[test]
     fn interpolate_up() {
@@ -683,22 +754,14 @@ pub mod test {
     #[test]
     fn calc_volume_ratio_default() {
         let bonded = Uint128::from(1000u128);
-        let unbonded = Uint128::from(500u128);
         let requested = Uint128::from(500u128);
         let swapped_in = Uint128::from(1000u128);
         let swapped_out = Uint128::from(1000u128);
         let swap_fee_rate = str_to_dec("0.003");
 
-        let res = calc_volume_ratio(
-            bonded,
-            unbonded,
-            requested,
-            swapped_in,
-            swapped_out,
-            swap_fee_rate,
-        );
+        let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
-        let volume_ratio = str_to_dec("1.001502253380070105");
+        let volume_ratio = str_to_dec("0.751126690035052578");
 
         assert_eq!(res.unwrap(), volume_ratio);
     }
@@ -706,20 +769,12 @@ pub mod test {
     #[test]
     fn calc_volume_ratio_fee_is_too_large() {
         let bonded = Uint128::from(1000u128);
-        let unbonded = Uint128::from(500u128);
         let requested = Uint128::from(500u128);
         let swapped_in = Uint128::from(1000u128);
         let swapped_out = Uint128::from(1000u128);
         let swap_fee_rate = str_to_dec("1");
 
-        let res = calc_volume_ratio(
-            bonded,
-            unbonded,
-            requested,
-            swapped_in,
-            swapped_out,
-            swap_fee_rate,
-        );
+        let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
         assert_eq!(
             res.unwrap_err(),
@@ -730,20 +785,12 @@ pub mod test {
     #[test]
     fn calc_volume_ratio_limit_lower() {
         let bonded = Uint128::from(100_000_000u128);
-        let unbonded = Uint128::one();
         let requested = Uint128::one();
         let swapped_in = Uint128::one();
         let swapped_out = Uint128::one();
         let swap_fee_rate = str_to_dec("0.003");
 
-        let res = calc_volume_ratio(
-            bonded,
-            unbonded,
-            requested,
-            swapped_in,
-            swapped_out,
-            swap_fee_rate,
-        );
+        let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
         let volume_ratio = str_to_dec("0.01");
 
@@ -753,23 +800,151 @@ pub mod test {
     #[test]
     fn calc_volume_ratio_limit_upper() {
         let bonded = Uint128::one();
-        let unbonded = Uint128::one();
         let requested = Uint128::from(100_000_000u128);
         let swapped_in = Uint128::one();
         let swapped_out = Uint128::one();
         let swap_fee_rate = str_to_dec("0.003");
 
-        let res = calc_volume_ratio(
-            bonded,
-            unbonded,
-            requested,
-            swapped_in,
-            swapped_out,
-            swap_fee_rate,
-        );
+        let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
         let volume_ratio = str_to_dec("100");
 
         assert_eq!(res.unwrap(), volume_ratio);
     }
+
+    #[test]
+    fn calc_provider_rewards_2_providers_2_assets_each() {
+        const AMOUNT_IN: u128 = 1_000_000;
+        const ALICE_ATOM_ALLOCATION_WEIGHT: &str = "0.2";
+        const ALICE_LUNA_ALLOCATION_WEIGHT: &str = "0.5";
+        const BONDED_VOLUME_ATOM: u128 = 2_000_000;
+        const REQUESTED_VOLUME_ATOM: u128 = 2_000_000;
+        const BONDED_VOLUME_LUNA: u128 = 2_000_000;
+        const REQUESTED_VOLUME_LUNA: u128 = 2_000_000;
+
+        let amount_in = Uint128::from(AMOUNT_IN);
+        let token_in_price = str_to_dec(PRICE_ATOM);
+        let token_out_price = str_to_dec(PRICE_LUNA);
+        let swap_fee_rate = str_to_dec(SWAP_FEE_RATE);
+
+        let provider_list: Vec<(Addr, Vec<Asset>)> = vec![
+            (
+                Addr::unchecked(ADDR_ALICE_INJ),
+                vec![
+                    Asset {
+                        token_addr: Addr::unchecked(TOKEN_ADDR_ATOM),
+                        bonded: (str_to_dec(ALICE_ATOM_ALLOCATION_WEIGHT) * u128_to_dec(AMOUNT_IN))
+                            .to_uint_floor(),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(0u128),
+                        counter: Timestamp::default(),
+                        rewards: Uint128::from(0u128),
+                    },
+                    Asset {
+                        token_addr: Addr::unchecked(TOKEN_ADDR_LUNA),
+                        bonded: (str_to_dec(ALICE_LUNA_ALLOCATION_WEIGHT) * u128_to_dec(AMOUNT_IN))
+                            .to_uint_floor(),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(0u128),
+                        counter: Timestamp::default(),
+                        rewards: Uint128::from(0u128),
+                    },
+                ],
+            ),
+            (
+                Addr::unchecked(ADDR_BOB_INJ),
+                vec![
+                    Asset {
+                        token_addr: Addr::unchecked(TOKEN_ADDR_ATOM),
+                        bonded: ((Decimal::one() - str_to_dec(ALICE_ATOM_ALLOCATION_WEIGHT))
+                            * u128_to_dec(AMOUNT_IN))
+                        .to_uint_floor(),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(0u128),
+                        counter: Timestamp::default(),
+                        rewards: Uint128::from(0u128),
+                    },
+                    Asset {
+                        token_addr: Addr::unchecked(TOKEN_ADDR_LUNA),
+                        bonded: ((Decimal::one() - str_to_dec(ALICE_LUNA_ALLOCATION_WEIGHT))
+                            * u128_to_dec(AMOUNT_IN))
+                        .to_uint_floor(),
+                        unbonded: Uint128::from(0u128),
+                        requested: Uint128::from(0u128),
+                        counter: Timestamp::default(),
+                        rewards: Uint128::from(0u128),
+                    },
+                ],
+            ),
+        ];
+
+        let token_list: Vec<(Addr, Token)> = vec![
+            (
+                Addr::unchecked(TOKEN_ADDR_ATOM),
+                Token {
+                    symbol: SYMBOL_ATOM.to_string(),
+                    price_feed_id_str: PRICE_FEED_ID_STR_ATOM.to_string(),
+                    bonded: (vec![], Uint128::from(BONDED_VOLUME_ATOM)),
+                    requested: (vec![], Uint128::from(REQUESTED_VOLUME_ATOM)),
+                    swapped_in: (vec![], Uint128::from(0u128)),
+                    swapped_out: (vec![], Uint128::from(0u128)),
+                },
+            ),
+            (
+                Addr::unchecked(TOKEN_ADDR_LUNA),
+                Token {
+                    symbol: SYMBOL_LUNA.to_string(),
+                    price_feed_id_str: PRICE_FEED_ID_STR_LUNA.to_string(),
+                    bonded: (vec![], Uint128::from(BONDED_VOLUME_LUNA)),
+                    requested: (vec![], Uint128::from(REQUESTED_VOLUME_LUNA)),
+                    swapped_in: (vec![], Uint128::from(0u128)),
+                    swapped_out: (vec![], Uint128::from(0u128)),
+                },
+            ),
+        ];
+
+        let (provider_rewards_list, amount_out) = calc_provider_rewards(
+            amount_in,
+            token_in_price,
+            token_out_price,
+            swap_fee_rate,
+            provider_list,
+            token_list,
+        )
+        .unwrap();
+
+        let amount_out_right = ((Decimal::one() - str_to_dec(SWAP_FEE_RATE))
+            * u128_to_dec(AMOUNT_IN)
+            * str_to_dec(PRICE_ATOM)
+            / str_to_dec(PRICE_LUNA))
+        .to_uint_floor();
+
+        let swap_fee = (str_to_dec(SWAP_FEE_RATE) * u128_to_dec(AMOUNT_IN)).to_uint_ceil();
+        let alice_rewards = ((str_to_dec(ALICE_ATOM_ALLOCATION_WEIGHT)
+            * u128_to_dec(BONDED_VOLUME_ATOM)
+            / (u128_to_dec(BONDED_VOLUME_ATOM) + u128_to_dec(BONDED_VOLUME_LUNA))
+            + str_to_dec(ALICE_LUNA_ALLOCATION_WEIGHT) * u128_to_dec(BONDED_VOLUME_LUNA)
+                / (u128_to_dec(BONDED_VOLUME_ATOM) + u128_to_dec(BONDED_VOLUME_LUNA)))
+            * u128_to_dec(swap_fee))
+        .to_uint_floor();
+        let bob_rewards = (((Decimal::one() - str_to_dec(ALICE_ATOM_ALLOCATION_WEIGHT))
+            * u128_to_dec(BONDED_VOLUME_ATOM)
+            / (u128_to_dec(BONDED_VOLUME_ATOM) + u128_to_dec(BONDED_VOLUME_LUNA))
+            + (Decimal::one() - str_to_dec(ALICE_LUNA_ALLOCATION_WEIGHT))
+                * u128_to_dec(BONDED_VOLUME_LUNA)
+                / (u128_to_dec(BONDED_VOLUME_ATOM) + u128_to_dec(BONDED_VOLUME_LUNA)))
+            * u128_to_dec(swap_fee))
+        .to_uint_floor();
+
+        assert_eq!(amount_out, amount_out_right);
+        assert_eq!(
+            provider_rewards_list,
+            vec![
+                (Addr::unchecked(ADDR_ALICE_INJ), alice_rewards),
+                (Addr::unchecked(ADDR_BOB_INJ), bob_rewards)
+            ]
+        );
+    }
+
+    // TODO: add more tests - noisy numbers, 1 provider, no providers, etc.
 }

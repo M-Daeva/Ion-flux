@@ -4,8 +4,6 @@ use cw20::Cw20Coin;
 
 use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 
-use pyth_sdk_cw::PriceFeedResponse;
-
 use crate::{
     contract::{execute, instantiate, query},
     messages::{execute::ExecuteMsg, query::QueryMsg, receive::ReceiveMsg, response::Balance},
@@ -18,13 +16,26 @@ pub const ADDR_BOB_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
 
 pub const SYMBOL_ATOM: &str = "ATOM";
 pub const SYMBOL_LUNA: &str = "LUNA";
+// pub const SYMBOL_USDC: &str = "USDC";
+// pub const SYMBOL_OSMO: &str = "OSMO";
+
+pub const PRICE_ATOM: &str = "10";
+pub const PRICE_LUNA: &str = "2";
+
+pub const TOKEN_ADDR_ATOM: &str = "token_addr_atom";
+pub const TOKEN_ADDR_LUNA: &str = "token_addr_luna";
 
 pub const PRICE_FEED_ID_STR_ATOM: &str =
     "0x61226d39beea19d334f17c2febce27e12646d84675924ebb02b9cdaea68727e3";
 pub const PRICE_FEED_ID_STR_LUNA: &str =
     "0x677dbbf4f68b5cb996a40dfae338b87d5efb2e12a9b2686d1ca16d69b3d7f204";
+// pub const PRICE_FEED_ID_STR_USDC: &str =
+//     "0x41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722";
+// pub const PRICE_FEED_ID_STR_OSMO: &str =
+//     "0xd9437c194a4b00ba9d7652cd9af3905e73ee15a2ca4152ac1f8d430cc322b857";
 
 pub const UNBONDING_PERIOD: u128 = 60 * 60 * 1_000_000_000;
+pub const SWAP_FEE_RATE: &str = "0.003";
 
 // pub const TEST_CONTRACT_ADDR: &str = "inj14hj2tavq8fpesdwxxcu44rty3hh90vhujaxlnz";
 
@@ -134,6 +145,7 @@ impl Project {
         swap_fee_rate: Option<Decimal>,
         window: Option<Uint128>,
         unbonding_period: Option<Uint128>,
+        price_age: Option<Uint128>,
     ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
@@ -144,6 +156,7 @@ impl Project {
                     swap_fee_rate,
                     window,
                     unbonding_period,
+                    price_age,
                 },
                 &[],
             )
@@ -262,25 +275,25 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap(
+    pub fn swap_mocked(
         &mut self,
         sender: &str,
-        token_addr: &Addr,
-        amount: Uint128,
-        token_addr_out: &Addr,
+        amount_in: Uint128,
+        token_in_addr: &Addr,
+        token_out_addr: &Addr,
     ) -> StdResult<AppResponse> {
         let msg = cw20::Cw20ExecuteMsg::Send {
             contract: self.address.to_string(),
-            amount,
-            msg: to_binary(&ReceiveMsg::Swap {
-                token_addr_out: token_addr_out.to_string(),
+            amount: amount_in,
+            msg: to_binary(&ReceiveMsg::SwapMocked {
+                token_out_addr: token_out_addr.to_string(),
             })?,
         };
 
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
-                token_addr.to_owned(),
+                token_in_addr.to_owned(),
                 &msg,
                 &[],
             )
@@ -288,63 +301,32 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn query_providers(&self, address: Option<&str>) -> StdResult<Vec<(Addr, Vec<Asset>)>> {
+    pub fn query_providers(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Vec<Asset>)>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryProviders {
-                address: address.map(|x| x.to_string()),
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
             },
         )
     }
 
     #[track_caller]
-    pub fn query_tokens(&self, address: Option<&str>) -> StdResult<Vec<(Addr, Token)>> {
+    pub fn query_tokens(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Token)>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryTokens {
-                address: address.map(|x| x.to_string()),
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
             },
         )
     }
 
     #[track_caller]
-    pub fn query_balances(&self, address: Option<&str>) -> StdResult<Vec<Balance>> {
+    pub fn query_balances(&self, address_list: Vec<&str>) -> StdResult<Vec<Balance>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryBalances {
-                address: address.map(|x| x.to_string()),
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
             },
         )
     }
-
-    // pyth test example
-    // https://github.com/pyth-network/pyth-crosschain/blob/main/target_chains/cosmwasm/examples/cw-contract/src/contract.rs
-    #[track_caller]
-    pub fn query_price(&self, price_feed_id_str: &str) -> StdResult<PriceFeedResponse> {
-        self.app.wrap().query_wasm_smart(
-            self.address.clone(),
-            &QueryMsg::QueryPrice {
-                price_feed_id_str: price_feed_id_str.to_string(),
-            },
-        )
-    }
-
-    // pub fn get_attrs(res: &AppResponse) -> Vec<Attribute> {
-    //     let mut attrs: Vec<Attribute> = vec![];
-
-    //     for item in &res.events {
-    //         for attr in &item.attributes {
-    //             attrs.push(attr.to_owned())
-    //         }
-    //     }
-
-    //     attrs
-    // }
-
-    // pub fn get_attr(res: &AppResponse, key: &str) -> String {
-    //     let attrs = Self::get_attrs(res);
-    //     let attr = attrs.iter().find(|x| x.key == *key).unwrap();
-
-    //     attr.to_owned().value
-    // }
 }
