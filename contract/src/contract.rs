@@ -8,16 +8,14 @@ use cw20::Cw20ReceiveMsg;
 
 use crate::{
     actions::{
-        execute::{
-            claim, swap_and_claim, swap_and_claim_mocked, unbond, update_config, update_token,
-            withdraw,
-        },
+        execute::{claim, swap_and_claim, unbond, update_config, update_token, withdraw},
         instantiate::init,
         migrate::migrate_contract,
         query::{
-            query_aprs, query_balances, query_config, query_prices, query_providers, query_tokens,
+            query_aprs, query_balances, query_config, query_prices, query_prices_mocked,
+            query_providers, query_tokens,
         },
-        receive::{deposit, swap, swap_mocked},
+        receive::{deposit, swap},
     },
     error::ContractError,
     messages::{
@@ -76,9 +74,6 @@ pub fn execute(
         ExecuteMsg::SwapAndClaim { token_out_addr } => {
             swap_and_claim(deps, env, info, token_out_addr)
         }
-        ExecuteMsg::SwapAndClaimMocked { token_out_addr } => {
-            swap_and_claim_mocked(deps, env, info, token_out_addr)
-        }
     }
 }
 
@@ -100,9 +95,6 @@ pub fn receive(
         ReceiveMsg::Swap { token_out_addr } => {
             swap(deps, env, info, sender, amount, token_out_addr)
         }
-        ReceiveMsg::SwapMocked { token_out_addr } => {
-            swap_mocked(deps, env, info, sender, amount, token_out_addr)
-        }
     }
 }
 
@@ -123,6 +115,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::QueryPrices { address_list } => {
             to_binary(&query_prices(deps, env, address_list)?)
+        }
+        QueryMsg::QueryPricesMocked { address_list } => {
+            to_binary(&query_prices_mocked(deps, env, address_list)?)
         }
     }
 }

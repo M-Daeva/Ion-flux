@@ -10,6 +10,8 @@ use crate::{
     state::{Asset, Config, Token, CHAIN_ID_MOCKED},
 };
 
+pub const CHAIN_ID_TESTNET: &str = "injective-888";
+
 pub const ADDR_ADMIN_INJ: &str = "inj1amp7dv5fvjyx95ea4grld6jmu9v207awtefwce";
 pub const ADDR_ALICE_INJ: &str = "inj1hag3kx8f9ypnssw7aqnq9e82t2zgt0g0ac2rru";
 pub const ADDR_BOB_INJ: &str = "inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz";
@@ -34,9 +36,6 @@ pub const PRICE_FEED_ID_STR_LUNA: &str =
 // pub const PRICE_FEED_ID_STR_OSMO: &str =
 //     "0xd9437c194a4b00ba9d7652cd9af3905e73ee15a2ca4152ac1f8d430cc322b857";
 
-pub const UNBONDING_PERIOD: u128 = 60 * 60 * 1_000_000_000;
-pub const SWAP_FEE_RATE: &str = "0.003";
-
 // pub const TEST_CONTRACT_ADDR: &str = "inj14hj2tavq8fpesdwxxcu44rty3hh90vhujaxlnz";
 
 // pub const PRICE_FEED_ID_INJ_STR: &str =
@@ -48,10 +47,11 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn new() -> Self {
+    pub fn new(chain_id_mocked: Option<&str>) -> Self {
         let mut app = Self::create_app();
         // set specific chain_id to prevent execution of mocked actions on real networks
-        app.update_block(|block| block.chain_id = String::from(CHAIN_ID_MOCKED));
+        let chain_id = chain_id_mocked.unwrap_or(CHAIN_ID_MOCKED);
+        app.update_block(|block| block.chain_id = String::from(chain_id));
 
         let id = Self::store_code(&mut app);
         let address = Self::instantiate(&mut app, id);
@@ -241,7 +241,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap_and_claim_mocked(
+    pub fn swap_and_claim(
         &mut self,
         sender: &str,
         token_out_addr: &Addr,
@@ -250,7 +250,7 @@ impl Project {
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
-                &ExecuteMsg::SwapAndClaimMocked {
+                &ExecuteMsg::SwapAndClaim {
                     token_out_addr: token_out_addr.to_string(),
                 },
                 &[],
@@ -282,7 +282,7 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap_mocked(
+    pub fn swap(
         &mut self,
         sender: &str,
         amount_in: Uint128,
@@ -292,7 +292,7 @@ impl Project {
         let msg = cw20::Cw20ExecuteMsg::Send {
             contract: self.address.to_string(),
             amount: amount_in,
-            msg: to_binary(&ReceiveMsg::SwapMocked {
+            msg: to_binary(&ReceiveMsg::Swap {
                 token_out_addr: token_out_addr.to_string(),
             })?,
         };
@@ -349,6 +349,16 @@ impl Project {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
             &QueryMsg::QueryBalances {
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
+            },
+        )
+    }
+
+    #[track_caller]
+    pub fn query_prices_mocked(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Decimal)>> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryPricesMocked {
                 address_list: address_list.iter().map(|x| x.to_string()).collect(),
             },
         )

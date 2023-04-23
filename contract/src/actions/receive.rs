@@ -5,8 +5,8 @@ use cw20::Cw20ExecuteMsg;
 
 use crate::{
     actions::{
-        math::{calc_provider_rewards, calc_sma, str_to_dec, u128_to_dec},
-        query::{query_prices, query_providers, query_tokens},
+        math::{calc_provider_rewards, calc_sma, u128_to_dec},
+        query::{query_prices, query_prices_mocked, query_providers, query_tokens},
     },
     error::ContractError,
     state::{Asset, Config, Sample, Token, CONFIG, PROVIDERS, TOKENS},
@@ -114,41 +114,14 @@ pub fn swap(
     amount_in: Uint128,
     token_out_addr: String,
 ) -> Result<Response, ContractError> {
-    let price_list = query_prices(
-        deps.as_ref(),
-        env.clone(),
-        vec![info.sender.to_string(), token_out_addr.clone()],
-    )
-    .map_err(|_| ContractError::NoPrices {})?;
-    let (token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
-
-    swap_accepting_prices(
-        deps,
-        env,
-        info,
-        sender,
-        amount_in,
-        token_out_addr,
-        token_in_price,
-        token_out_price,
-    )
-}
-
-// for unit tests
-pub fn swap_mocked(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    sender: String,
-    amount_in: Uint128,
-    token_out_addr: String,
-) -> Result<Response, ContractError> {
-    if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
-        Err(ContractError::MockedActions {})?;
+    let price_list = if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
+        query_prices(deps.as_ref(), env.clone(), vec![])
+    } else {
+        query_prices_mocked(deps.as_ref(), env.clone(), vec![])
     }
+    .map_err(|_| ContractError::NoPrices {})?;
 
-    let token_in_price = str_to_dec("1");
-    let token_out_price = str_to_dec("2");
+    let (token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
 
     swap_accepting_prices(
         deps,
@@ -175,6 +148,10 @@ fn swap_accepting_prices(
 ) -> Result<Response, ContractError> {
     let token_in_addr = info.sender;
     let token_out_addr = deps.api.addr_validate(&token_out_addr)?;
+
+    if token_in_addr == token_out_addr {
+        Err(ContractError::SameTokens {})?
+    }
 
     let user_addr = deps.api.addr_validate(&sender)?;
     let timestamp = env.block.time;

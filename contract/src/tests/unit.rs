@@ -3,12 +3,15 @@ use cosmwasm_std::{Addr, Decimal, Timestamp, Uint128};
 use cw20::Cw20Coin;
 
 use crate::{
-    actions::math::{str_to_dec, u128_to_dec},
+    actions::{
+        instantiate::{PRICE_AGE, SWAP_FEE_RATE, UNBONDING_PERIOD, WINDOW},
+        math::{str_to_dec, u128_to_dec},
+    },
     messages::response::Balance,
-    state::{Asset, Sample, Token},
+    state::{Asset, Config, Sample, Token},
     tests::helpers::{
-        Project, ADDR_ADMIN_INJ, ADDR_ALICE_INJ, ADDR_BOB_INJ, PRICE_FEED_ID_STR_ATOM,
-        PRICE_FEED_ID_STR_LUNA, SWAP_FEE_RATE, SYMBOL_ATOM, SYMBOL_LUNA, UNBONDING_PERIOD,
+        Project, ADDR_ADMIN_INJ, ADDR_ALICE_INJ, ADDR_BOB_INJ, CHAIN_ID_TESTNET,
+        PRICE_FEED_ID_STR_ATOM, PRICE_FEED_ID_STR_LUNA, SYMBOL_ATOM, SYMBOL_LUNA,
     },
 };
 
@@ -18,7 +21,7 @@ fn default_init() -> (Project, Addr, Cw20Coin) {
         amount: Uint128::from(5u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
 
@@ -38,12 +41,54 @@ fn create_cw20() {
         amount: Uint128::from(5u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
     let balance = prj.get_cw20_balance(token, ADDR_ALICE_INJ);
 
     assert_eq!(balance, mint_amount.amount);
+}
+
+#[test]
+fn update_config_default() {
+    let (mut prj, ..) = default_init();
+
+    prj.update_config(
+        ADDR_ADMIN_INJ,
+        None,
+        None,
+        None,
+        None,
+        Some(Uint128::from(2 * PRICE_AGE)),
+    )
+    .unwrap();
+
+    assert_eq!(
+        prj.query_config().unwrap(),
+        Config::new(
+            &Addr::unchecked(ADDR_ADMIN_INJ),
+            SWAP_FEE_RATE,
+            WINDOW,
+            UNBONDING_PERIOD,
+            2 * PRICE_AGE
+        )
+    );
+}
+
+#[test]
+#[should_panic(expected = "Sender does not have access permissions!")]
+fn update_config_unauthorized() {
+    let (mut prj, ..) = default_init();
+
+    prj.update_config(
+        ADDR_ALICE_INJ,
+        None,
+        None,
+        None,
+        None,
+        Some(Uint128::from(2 * PRICE_AGE)),
+    )
+    .unwrap();
 }
 
 #[test]
@@ -115,7 +160,7 @@ fn deposit_unbond_withdraw_loop() {
         amount: Uint128::from(9u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
     let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone()]);
@@ -322,7 +367,7 @@ fn deposit_2_providers() {
         amount: Uint128::from(50u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
     let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
@@ -495,7 +540,7 @@ fn query_tokens() {
         amount: Uint128::from(50u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
     let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
@@ -587,7 +632,7 @@ fn swap_default() {
         amount: Uint128::from(100_000u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(
         SYMBOL_ATOM,
@@ -612,12 +657,18 @@ fn swap_default() {
     prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
         .unwrap();
 
-    let amount_in = mint_amount3.amount / Uint128::from(10u128);
-    let amount_out = ((Decimal::one() - str_to_dec(SWAP_FEE_RATE)) * u128_to_dec(amount_in)
-        / u128_to_dec(Uint128::from(2u128)))
-    .to_uint_floor();
+    let price_list = prj
+        .query_prices_mocked(vec![token.as_str(), token2.as_str()])
+        .unwrap();
+    let (token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
 
-    prj.swap_mocked(ADDR_ADMIN_INJ, amount_in, &token, &token2)
+    let amount_in = mint_amount3.amount / Uint128::from(10u128);
+    let amount_out =
+        ((Decimal::one() - str_to_dec(SWAP_FEE_RATE)) * u128_to_dec(amount_in) * token_in_price
+            / token_out_price)
+            .to_uint_floor();
+
+    prj.swap(ADDR_ADMIN_INJ, amount_in, &token, &token2)
         .unwrap();
 
     assert_eq!(
@@ -628,6 +679,150 @@ fn swap_default() {
         prj.get_cw20_balance(token2, ADDR_ADMIN_INJ),
         mint_amount3.amount + amount_out
     );
+}
+
+#[test]
+#[should_panic(expected = "Can not swap same tokens!")]
+fn swap_same_tokens() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    let amount_in = mint_amount.amount / Uint128::from(10u128);
+
+    prj.swap(ADDR_BOB_INJ, amount_in, &token, &token).unwrap();
+}
+
+// TODO: add more claim tests
+#[test]
+fn claim_default() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    let price_list = prj
+        .query_prices_mocked(vec![token.as_str(), token2.as_str()])
+        .unwrap();
+    let (token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
+
+    let amount_in = mint_amount.amount / Uint128::from(10u128);
+    let rewards = (str_to_dec(SWAP_FEE_RATE) * u128_to_dec(amount_in) * token_in_price
+        / token_out_price)
+        .to_uint_floor();
+
+    prj.swap(ADDR_BOB_INJ, amount_in, &token, &token2).unwrap();
+
+    prj.claim(ADDR_ALICE_INJ).unwrap();
+
+    assert_eq!(
+        prj.get_cw20_balance(token, ADDR_ALICE_INJ),
+        mint_amount.amount + rewards
+    );
+}
+
+#[test]
+fn swap_and_claim_default() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+
+    let price_list = prj
+        .query_prices_mocked(vec![token.as_str(), token2.as_str()])
+        .unwrap();
+    let (_token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
+
+    let amount_in = mint_amount.amount / Uint128::from(4u128);
+    let rewards = (u128_to_dec(
+        (str_to_dec(SWAP_FEE_RATE) * u128_to_dec(amount_in) / token_out_price).to_uint_floor(),
+    ) * token_out_price)
+        .to_uint_floor();
+
+    prj.swap(ADDR_BOB_INJ, amount_in, &token2, &token).unwrap();
+
+    prj.swap_and_claim(ADDR_ALICE_INJ, &token).unwrap();
+
+    assert_eq!(prj.get_cw20_balance(token, ADDR_ALICE_INJ), rewards);
+}
+
+#[test]
+fn query_config_default() {
+    let (prj, ..) = default_init();
+
+    assert_eq!(
+        prj.query_config().unwrap(),
+        Config::new(
+            &Addr::unchecked(ADDR_ADMIN_INJ),
+            SWAP_FEE_RATE,
+            WINDOW,
+            UNBONDING_PERIOD,
+            PRICE_AGE
+        )
+    );
+}
+
+// TODO: add more apr tests
+#[test]
+fn query_aprs_zero_volume() {
+    let (prj, ..) = default_init();
+
+    assert_eq!(prj.query_aprs(vec![]).unwrap()[0].1, Decimal::zero());
 }
 
 #[test]
@@ -649,7 +844,7 @@ fn query_balances() {
         amount: Uint128::from(50u128),
     };
 
-    let mut prj = Project::new();
+    let mut prj = Project::new(None);
 
     let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
     let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
@@ -682,4 +877,40 @@ fn query_balances() {
             },
         ]
     );
+}
+
+#[test]
+fn query_prices_mocked_default() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount]);
+
+    assert_eq!(
+        prj.query_prices_mocked(vec![token.as_str(), token2.as_str()])
+            .unwrap(),
+        vec![(token, u128_to_dec(1u128)), (token2, u128_to_dec(2u128))]
+    );
+}
+
+#[test]
+#[should_panic(expected = "Mocked actions are disabled on real networks!")]
+fn query_prices_mocked_real_network() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(Some(CHAIN_ID_TESTNET));
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount]);
+
+    prj.query_prices_mocked(vec![token.as_str(), token2.as_str()])
+        .unwrap();
 }

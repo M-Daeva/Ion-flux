@@ -9,7 +9,7 @@ use cw20::Cw20ExecuteMsg;
 use crate::{
     actions::{
         math::{calc_sma, u128_to_dec},
-        query::{query_prices, query_tokens},
+        query::{query_prices, query_prices_mocked},
     },
     error::ContractError,
     state::{Asset, Config, Sample, Token, CONFIG, PROVIDERS, TOKENS},
@@ -366,26 +366,12 @@ pub fn swap_and_claim(
     info: MessageInfo,
     token_out_addr: String,
 ) -> Result<Response, ContractError> {
-    let price_list =
-        query_prices(deps.as_ref(), env.clone(), vec![]).map_err(|_| ContractError::NoPrices {})?;
-
-    swap_and_claim_accepting_prices(deps, env, info, token_out_addr, price_list)
-}
-
-pub fn swap_and_claim_mocked(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    token_out_addr: String,
-) -> Result<Response, ContractError> {
-    if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
-        Err(ContractError::MockedActions {})?;
+    let price_list = if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
+        query_prices(deps.as_ref(), env.clone(), vec![])
+    } else {
+        query_prices_mocked(deps.as_ref(), env.clone(), vec![])
     }
-
-    let price_list: Vec<(Addr, Decimal)> = query_tokens(deps.as_ref(), env.clone(), vec![])?
-        .iter()
-        .map(|(addr, _token)| (addr.to_owned(), Decimal::one()))
-        .collect();
+    .map_err(|_| ContractError::NoPrices {})?;
 
     swap_and_claim_accepting_prices(deps, env, info, token_out_addr, price_list)
 }

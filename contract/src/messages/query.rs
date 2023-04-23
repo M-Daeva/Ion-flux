@@ -24,4 +24,6 @@ pub enum QueryMsg {
     QueryBalances { address_list: Vec<String> },
     #[returns(Vec<(Addr, Decimal)>)]
     QueryPrices { address_list: Vec<String> },
+    #[returns(Vec<(Addr, Decimal)>)]
+    QueryPricesMocked { address_list: Vec<String> },
 }

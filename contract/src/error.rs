@@ -49,4 +49,7 @@ pub enum ContractError {
 
     #[error("Can not get prices!")]
     NoPrices {},
+
+    #[error("Can not swap same tokens!")]
+    SameTokens {},
 }

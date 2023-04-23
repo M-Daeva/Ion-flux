@@ -5,6 +5,7 @@ use pyth_sdk_cw::{query_price_feed, Price, PriceIdentifier};
 
 use crate::{
     actions::math::{calc_volume_ratio, u128_to_dec},
+    error::{to_std_err, ContractError},
     messages::response::Balance,
     state::{Asset, Config, Pyth, Token, CONFIG, PROVIDERS, PYTH, TOKENS},
 };
@@ -177,4 +178,30 @@ pub fn query_prices(
     }
 
     Ok(price_list)
+}
+
+// for unit tests
+pub fn query_prices_mocked(
+    deps: Deps,
+    env: Env,
+    address_list: Vec<String>,
+) -> StdResult<Vec<(Addr, Decimal)>> {
+    if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
+        Err(to_std_err(ContractError::MockedActions {}))?;
+    }
+
+    let price_list_mocked: Vec<(Addr, Decimal)> = vec![
+        (Addr::unchecked("contract1"), u128_to_dec(1u128)),
+        (Addr::unchecked("contract2"), u128_to_dec(2u128)),
+        (Addr::unchecked("contract3"), u128_to_dec(1u128)),
+        (Addr::unchecked("contract4"), u128_to_dec(2u128)),
+    ];
+
+    let max_index = if !address_list.is_empty() {
+        address_list.len()
+    } else {
+        price_list_mocked.len()
+    };
+
+    Ok(price_list_mocked[..max_index].to_vec())
 }
