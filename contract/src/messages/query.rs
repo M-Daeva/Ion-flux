@@ -6,12 +6,14 @@ use cosmwasm_std::{Addr, Decimal};
 #[allow(unused_imports)] // preventing optimizer warning message
 use crate::{
     messages::response::Balance,
-    state::{Asset, Token},
+    state::{Asset, Config, Token},
 };
 
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
+    #[returns(Config)]
+    QueryConfig {},
     #[returns(Vec<(Addr, Decimal)>)]
     QueryAprs { address_list: Vec<String> },
     #[returns(Vec<(Addr, Vec<Asset>)>)]

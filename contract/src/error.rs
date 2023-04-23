@@ -44,6 +44,9 @@ pub enum ContractError {
     #[error("Sender does not have access permissions!")]
     Unauthorized {},
 
+    #[error("Mocked actions are disabled on real networks!")]
+    MockedActions {},
+
     #[error("Can not get prices!")]
     NoPrices {},
 }

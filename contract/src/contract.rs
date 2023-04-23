@@ -8,10 +8,15 @@ use cw20::Cw20ReceiveMsg;
 
 use crate::{
     actions::{
-        execute::{claim, swap_and_claim, unbond, update_config, update_token, withdraw},
+        execute::{
+            claim, swap_and_claim, swap_and_claim_mocked, unbond, update_config, update_token,
+            withdraw,
+        },
         instantiate::init,
         migrate::migrate_contract,
-        query::{query_aprs, query_balances, query_prices, query_providers, query_tokens},
+        query::{
+            query_aprs, query_balances, query_config, query_prices, query_providers, query_tokens,
+        },
         receive::{deposit, swap, swap_mocked},
     },
     error::ContractError,
@@ -67,10 +72,13 @@ pub fn execute(
         ExecuteMsg::Withdraw { token_addr, amount } => {
             withdraw(deps, env, info, token_addr, amount)
         }
-        // TODO
         ExecuteMsg::Claim {} => claim(deps, env, info),
-        // TODO
-        ExecuteMsg::SwapAndClaim { token_addr } => swap_and_claim(deps, env, info, token_addr),
+        ExecuteMsg::SwapAndClaim { token_out_addr } => {
+            swap_and_claim(deps, env, info, token_out_addr)
+        }
+        ExecuteMsg::SwapAndClaimMocked { token_out_addr } => {
+            swap_and_claim_mocked(deps, env, info, token_out_addr)
+        }
     }
 }
 
@@ -102,6 +110,7 @@ pub fn receive(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        QueryMsg::QueryConfig {} => to_binary(&query_config(deps, env)?),
         QueryMsg::QueryAprs { address_list } => to_binary(&query_aprs(deps, env, address_list)?),
         QueryMsg::QueryProviders { address_list } => {
             to_binary(&query_providers(deps, env, address_list)?)

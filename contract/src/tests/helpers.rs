@@ -7,7 +7,7 @@ use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 use crate::{
     contract::{execute, instantiate, query},
     messages::{execute::ExecuteMsg, query::QueryMsg, receive::ReceiveMsg, response::Balance},
-    state::{Asset, Token},
+    state::{Asset, Config, Token, CHAIN_ID_MOCKED},
 };
 
 pub const ADDR_ADMIN_INJ: &str = "inj1amp7dv5fvjyx95ea4grld6jmu9v207awtefwce";
@@ -50,6 +50,9 @@ pub struct Project {
 impl Project {
     pub fn new() -> Self {
         let mut app = Self::create_app();
+        // set specific chain_id to prevent execution of mocked actions on real networks
+        app.update_block(|block| block.chain_id = String::from(CHAIN_ID_MOCKED));
+
         let id = Self::store_code(&mut app);
         let address = Self::instantiate(&mut app, id);
 
@@ -238,13 +241,17 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn swap_and_claim(&mut self, sender: &str, token_addr: &Addr) -> StdResult<AppResponse> {
+    pub fn swap_and_claim_mocked(
+        &mut self,
+        sender: &str,
+        token_out_addr: &Addr,
+    ) -> StdResult<AppResponse> {
         self.app
             .execute_contract(
                 Addr::unchecked(sender.to_string()),
                 self.address.clone(),
-                &ExecuteMsg::SwapAndClaim {
-                    token_addr: token_addr.to_string(),
+                &ExecuteMsg::SwapAndClaimMocked {
+                    token_out_addr: token_out_addr.to_string(),
                 },
                 &[],
             )
@@ -298,6 +305,23 @@ impl Project {
                 &[],
             )
             .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn query_config(&self) -> StdResult<Config> {
+        self.app
+            .wrap()
+            .query_wasm_smart(self.address.clone(), &QueryMsg::QueryConfig {})
+    }
+
+    #[track_caller]
+    pub fn query_aprs(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Decimal)>> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryAprs {
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
+            },
+        )
     }
 
     #[track_caller]

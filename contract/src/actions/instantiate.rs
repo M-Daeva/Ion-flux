@@ -1,10 +1,8 @@
-use cosmwasm_std::Uint128;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
 use cw2::set_contract_version;
 
 use crate::{
-    actions::math::str_to_dec,
     error::ContractError,
     messages::instantiate::InstantiateMsg,
     state::{Config, Pyth, CONFIG, PYTH},
@@ -28,13 +26,13 @@ pub fn init(
 ) -> Result<Response, ContractError> {
     CONFIG.save(
         deps.storage,
-        &Config {
-            admin: info.sender,
-            swap_fee_rate: str_to_dec(SWAP_FEE_RATE),
-            window: Uint128::from(WINDOW),
-            unbonding_period: Uint128::from(UNBONDING_PERIOD),
-            price_age: Uint128::from(PRICE_AGE),
-        },
+        &Config::new(
+            &info.sender,
+            SWAP_FEE_RATE,
+            WINDOW,
+            UNBONDING_PERIOD,
+            PRICE_AGE,
+        ),
     )?;
 
     PYTH.save(

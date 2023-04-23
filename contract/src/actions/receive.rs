@@ -143,8 +143,8 @@ pub fn swap_mocked(
     amount_in: Uint128,
     token_out_addr: String,
 ) -> Result<Response, ContractError> {
-    if sender != CONFIG.load(deps.storage)?.admin {
-        Err(ContractError::Unauthorized {})?;
+    if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
+        Err(ContractError::MockedActions {})?;
     }
 
     let token_in_price = str_to_dec("1");
@@ -163,7 +163,7 @@ pub fn swap_mocked(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn swap_accepting_prices(
+fn swap_accepting_prices(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,

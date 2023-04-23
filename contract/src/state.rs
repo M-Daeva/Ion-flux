@@ -2,6 +2,10 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal, Timestamp, Uint128};
 use cw_storage_plus::{Item, Map};
 
+use crate::actions::math::str_to_dec;
+
+pub const CHAIN_ID_MOCKED: &str = "cw_multi_test";
+
 pub const CONFIG: Item<Config> = Item::new("config");
 
 #[cw_serde]
@@ -11,6 +15,30 @@ pub struct Config {
     pub window: Uint128,
     pub unbonding_period: Uint128,
     pub price_age: Uint128,
+    chain_id_mocked: String,
+}
+
+impl Config {
+    pub fn new(
+        admin: &Addr,
+        swap_fee_rate: &str,
+        window: u128,
+        unbonding_period: u128,
+        price_age: u128,
+    ) -> Self {
+        Config {
+            admin: admin.to_owned(),
+            swap_fee_rate: str_to_dec(swap_fee_rate),
+            window: Uint128::from(window),
+            unbonding_period: Uint128::from(unbonding_period),
+            price_age: Uint128::from(price_age),
+            chain_id_mocked: String::from(CHAIN_ID_MOCKED),
+        }
+    }
+
+    pub fn get_chain_id(&self) -> String {
+        self.chain_id_mocked.clone()
+    }
 }
 
 // key - token_addr: &Addr

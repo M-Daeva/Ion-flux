@@ -29,6 +29,9 @@ pub enum ExecuteMsg {
     },
     Claim {},
     SwapAndClaim {
-        token_addr: String,
+        token_out_addr: String,
+    },
+    SwapAndClaimMocked {
+        token_out_addr: String,
     },
 }

@@ -9,6 +9,10 @@ use crate::{
     state::{Asset, Config, Pyth, Token, CONFIG, PROVIDERS, PYTH, TOKENS},
 };
 
+pub fn query_config(deps: Deps, _env: Env) -> StdResult<Config> {
+    CONFIG.load(deps.storage)
+}
+
 // apr = swap_fee_rate * swapped_in_sma * token_weight / bonded_by_all_providers
 pub fn query_aprs(
     deps: Deps,
