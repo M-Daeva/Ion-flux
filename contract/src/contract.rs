@@ -12,8 +12,8 @@ use crate::{
         instantiate::init,
         migrate::migrate_contract,
         query::{
-            query_aprs, query_balances, query_config, query_prices, query_prices_mocked,
-            query_providers, query_tokens,
+            query_balances, query_config, query_liquidity, query_prices, query_prices_mocked,
+            query_providers, query_tokens, query_tokens_weight,
         },
         receive::{deposit, swap},
     },
@@ -103,7 +103,12 @@ pub fn receive(
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::QueryConfig {} => to_binary(&query_config(deps, env)?),
-        QueryMsg::QueryAprs { address_list } => to_binary(&query_aprs(deps, env, address_list)?),
+        QueryMsg::QueryTokensWeight { address_list } => {
+            to_binary(&query_tokens_weight(deps, env, address_list)?)
+        }
+        QueryMsg::QueryLiquidity { address_list } => {
+            to_binary(&query_liquidity(deps, env, address_list)?)
+        }
         QueryMsg::QueryProviders { address_list } => {
             to_binary(&query_providers(deps, env, address_list)?)
         }

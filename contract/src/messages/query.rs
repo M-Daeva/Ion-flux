@@ -1,7 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
 #[allow(unused_imports)] // preventing optimizer warning message
-use cosmwasm_std::{Addr, Decimal};
+use cosmwasm_std::{Addr, Decimal, Uint128};
 
 #[allow(unused_imports)] // preventing optimizer warning message
 use crate::{
@@ -15,7 +15,9 @@ pub enum QueryMsg {
     #[returns(Config)]
     QueryConfig {},
     #[returns(Vec<(Addr, Decimal)>)]
-    QueryAprs { address_list: Vec<String> },
+    QueryTokensWeight { address_list: Vec<String> },
+    #[returns(Vec<(Addr, Uint128)>)]
+    QueryLiquidity { address_list: Vec<String> },
     #[returns(Vec<(Addr, Vec<Asset>)>)]
     QueryProviders { address_list: Vec<String> },
     #[returns(Vec<(Addr, Token)>)]

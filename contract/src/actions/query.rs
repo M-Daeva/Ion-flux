@@ -1,5 +1,7 @@
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{Addr, Decimal, Deps, Env, Order, QuerierWrapper, StdError, StdResult, Uint128};
+use cosmwasm_std::{
+    Addr, Decimal, Deps, Env, Order, QuerierWrapper, StdError, StdResult, Timestamp, Uint128,
+};
 use cw20::{BalanceResponse, Cw20QueryMsg};
 use pyth_sdk_cw::{query_price_feed, Price, PriceIdentifier};
 
@@ -14,25 +16,20 @@ pub fn query_config(deps: Deps, _env: Env) -> StdResult<Config> {
     CONFIG.load(deps.storage)
 }
 
-// apr = swap_fee_rate * swapped_in_sma * token_weight / bonded_by_all_providers
-pub fn query_aprs(
+// token_weight = volume_ratio / sum_for_each_token(volume_ratio)
+pub fn query_tokens_weight(
     deps: Deps,
     env: Env,
     address_list: Vec<String>,
 ) -> StdResult<Vec<(Addr, Decimal)>> {
-    const APR_LIMIT: u128 = 1_000_000;
-
-    let timestamp = env.block.time;
     let Config { swap_fee_rate, .. } = CONFIG.load(deps.storage)?;
-    let token_list = query_tokens(deps, env.clone(), address_list)?;
-    let provider_list = query_providers(deps, env, vec![])?;
+    let token_list = query_tokens(deps, env, address_list)?;
 
-    // get total values for volume ratio and bonded tokens
+    let mut token_weight_list: Vec<(Addr, Decimal)> = vec![];
     let mut volume_ratio_list: Vec<(Addr, Decimal)> = vec![];
     let mut volume_ratio_sum = Decimal::zero();
-    let mut apr_list: Vec<(Addr, Decimal)> = vec![];
 
-    for (token_addr, token) in token_list.clone() {
+    for (token_addr, token) in token_list {
         let volume_ratio = calc_volume_ratio(
             token.bonded.1,
             token.requested.1,
@@ -45,48 +42,42 @@ pub fn query_aprs(
         volume_ratio_sum += volume_ratio;
     }
 
-    for (token_addr, token) in token_list {
-        let bonded_by_all_providers =
-            provider_list
-                .iter()
-                .fold(Uint128::zero(), |acc, (_, asset_list)| {
-                    let asset_default = Asset::new(&token_addr, &timestamp);
-
-                    let asset = asset_list
-                        .iter()
-                        .find(|x| x.token_addr == token_addr)
-                        .unwrap_or(&asset_default);
-
-                    acc + asset.bonded
-                });
-
-        // first liquidity provider will get all
-        if bonded_by_all_providers.is_zero() {
-            apr_list.push((token_addr, u128_to_dec(APR_LIMIT)));
-            continue;
-        }
-
-        let volume_ratio_default = (token_addr.clone(), Decimal::zero());
-
-        let (_, volume_ratio_value) = volume_ratio_list
-            .iter()
-            .find(|(addr, _)| addr == &token_addr)
-            .unwrap_or(&volume_ratio_default);
-
-        let token_weight = volume_ratio_value / volume_ratio_sum;
-
-        // token.swapped_in.1 is (1 - swap_fee_rate) * swapped_in then
-        // swap_fee_rate * swapped_in = swap_fee_rate * token.swapped_in.1 / (1 - swap_fee_rate)
-        let apr = swap_fee_rate * u128_to_dec(token.swapped_in.1) * token_weight
-            / ((Decimal::one() - swap_fee_rate) * bonded_by_all_providers);
-
-        apr_list.push((
-            token_addr,
-            apr.clamp(Decimal::zero(), u128_to_dec(APR_LIMIT)),
-        ));
+    for (addr, volume_ratio) in volume_ratio_list {
+        token_weight_list.push((addr, volume_ratio / volume_ratio_sum));
     }
 
-    Ok(apr_list)
+    Ok(token_weight_list)
+}
+
+// asset_liquidity = sum_for_each_provider(asset_bonded + asset_requested)
+pub fn query_liquidity(
+    deps: Deps,
+    env: Env,
+    address_list: Vec<String>,
+) -> StdResult<Vec<(Addr, Uint128)>> {
+    let token_list = query_tokens(deps, env.clone(), address_list)?;
+    let provider_list = query_providers(deps, env, vec![])?;
+
+    let mut liquidity_list: Vec<(Addr, Uint128)> = vec![];
+
+    for (token_addr, _token) in token_list {
+        let liquidity = provider_list
+            .iter()
+            .fold(Uint128::zero(), |acc, (_, asset_list)| {
+                let asset_default = Asset::new(&token_addr, &Timestamp::default());
+
+                let asset = asset_list
+                    .iter()
+                    .find(|x| x.token_addr == token_addr)
+                    .unwrap_or(&asset_default);
+
+                acc + asset.bonded + asset.requested
+            });
+
+        liquidity_list.push((token_addr, liquidity));
+    }
+
+    Ok(liquidity_list)
 }
 
 pub fn query_providers(

@@ -315,10 +315,20 @@ impl Project {
     }
 
     #[track_caller]
-    pub fn query_aprs(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Decimal)>> {
+    pub fn query_tokens_weight(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Decimal)>> {
         self.app.wrap().query_wasm_smart(
             self.address.clone(),
-            &QueryMsg::QueryAprs {
+            &QueryMsg::QueryTokensWeight {
+                address_list: address_list.iter().map(|x| x.to_string()).collect(),
+            },
+        )
+    }
+
+    #[track_caller]
+    pub fn query_liquidity(&self, address_list: Vec<&str>) -> StdResult<Vec<(Addr, Uint128)>> {
+        self.app.wrap().query_wasm_smart(
+            self.address.clone(),
+            &QueryMsg::QueryLiquidity {
                 address_list: address_list.iter().map(|x| x.to_string()).collect(),
             },
         )

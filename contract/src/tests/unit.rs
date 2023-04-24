@@ -817,12 +817,42 @@ fn query_config_default() {
     );
 }
 
-// TODO: add more apr tests
+// TODO: add more tokens_weight tests
 #[test]
-fn query_aprs_zero_volume() {
+fn query_tokens_weight_zero_volume() {
     let (prj, ..) = default_init();
 
-    assert_eq!(prj.query_aprs(vec![]).unwrap()[0].1, Decimal::zero());
+    assert_eq!(
+        prj.query_tokens_weight(vec![]).unwrap()[0].1,
+        Decimal::one()
+    );
+}
+
+// TODO: add more liquidity tests
+#[test]
+fn query_liquidity_default() {
+    let (mut prj, token, mint_amount) = default_init();
+
+    prj.unbond(
+        ADDR_ALICE_INJ,
+        &token,
+        mint_amount.amount / Uint128::from(5u128),
+    )
+    .unwrap();
+
+    prj.wait(UNBONDING_PERIOD as u64);
+
+    prj.unbond(
+        ADDR_ALICE_INJ,
+        &token,
+        mint_amount.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+
+    assert_eq!(
+        prj.query_liquidity(vec![]).unwrap()[0].1,
+        Uint128::from(4u128) * mint_amount.amount / Uint128::from(5u128)
+    );
 }
 
 #[test]
