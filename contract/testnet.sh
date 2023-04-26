@@ -2,7 +2,8 @@
 
 PREFIX="inj"
 CHAIN_ID="injective-888"
-RPC="https://k8s.testnet.tm.injective.network:443"
+# RPC="https://k8s.testnet.tm.injective.network:443"
+RPC="https://testnet.tm.injective.network:443"
 # inj1prmtvxpvdcmp3dtn6qn4hyq9gytj5ry4u28nqz
 SEED_ALICE=$(jq -r '.ALICE_SEED' ../../.test-wallets/test_wallets.json)
 # inj1hag3kx8f9ypnssw7aqnq9e82t2zgt0g0ac2rru
@@ -26,7 +27,7 @@ $DAEMON q bank balances $DAPP_ADDRESS --denom "inj" --node $RPC --chain-id $CHAI
 
 # you must manually import all accounts from mnemonic via
 # injectived keys add $user --recover
-CONTRACT_CODE=$($DAEMON tx wasm store $WASM --from dapp $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[1].value')
+CONTRACT_CODE=$(yes 12345678 | $DAEMON tx wasm store $WASM --from dapp $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[1].value')
 echo contract code is $CONTRACT_CODE
 
 $DAEMON q bank balances $DAPP_ADDRESS --denom "inj" --node $RPC --chain-id $CHAIN_ID
@@ -35,7 +36,7 @@ $DAEMON q bank balances $DAPP_ADDRESS --denom "inj" --node $RPC --chain-id $CHAI
 
 # instantiate smart contract
 INIT='{}'
-$DAEMON tx wasm instantiate $CONTRACT_CODE "$INIT" --from "dapp" --label "ion-flux-dev" $TXFLAG --admin $DAPP_ADDRESS
+yes 12345678 | $DAEMON tx wasm instantiate $CONTRACT_CODE "$INIT" --from "dapp" --label "ion-flux-dev" $TXFLAG --admin $DAPP_ADDRESS
 
 # get smart contract address
 CONTRACT_ADDRESS=$($DAEMON query wasm list-contract-by-code $CONTRACT_CODE --node $RPC --chain-id $CHAIN_ID --output json | jq -r '.contracts[-1]')
