@@ -49,19 +49,30 @@ pub fn query_tokens_weight(
     Ok(token_weight_list)
 }
 
-// asset_liquidity = sum_for_each_provider(asset_bonded + asset_requested)
+// token_liquidity = token_balance - sum_for_each_provider(asset_unbonded + asset_rewards)
 pub fn query_liquidity(
     deps: Deps,
     env: Env,
     address_list: Vec<String>,
 ) -> StdResult<Vec<(Addr, Uint128)>> {
     let token_list = query_tokens(deps, env.clone(), address_list)?;
-    let provider_list = query_providers(deps, env, vec![])?;
+    let provider_list = query_providers(deps, env.clone(), vec![])?;
 
     let mut liquidity_list: Vec<(Addr, Uint128)> = vec![];
 
     for (token_addr, _token) in token_list {
-        let liquidity = provider_list
+        let msg = Cw20QueryMsg::Balance {
+            address: env.contract.address.to_string(),
+        };
+
+        let balance = QuerierWrapper::query_wasm_smart::<BalanceResponse>(
+            &deps.querier,
+            token_addr.clone(),
+            &msg,
+        )?
+        .balance;
+
+        let illiquid_funds = provider_list
             .iter()
             .fold(Uint128::zero(), |acc, (_, asset_list)| {
                 let asset_default = Asset::new(&token_addr, &Timestamp::default());
@@ -71,10 +82,10 @@ pub fn query_liquidity(
                     .find(|x| x.token_addr == token_addr)
                     .unwrap_or(&asset_default);
 
-                acc + asset.bonded + asset.requested
+                acc + asset.unbonded + asset.rewards
             });
 
-        liquidity_list.push((token_addr, liquidity));
+        liquidity_list.push((token_addr, balance - illiquid_funds));
     }
 
     Ok(liquidity_list)
