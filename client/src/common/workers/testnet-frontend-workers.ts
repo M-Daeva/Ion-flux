@@ -27,6 +27,8 @@ async function init() {
   if (!userCwHelpers) return;
 
   const {
+    owner,
+
     cwDeposit,
     cwSwap,
 
@@ -45,15 +47,15 @@ async function init() {
     cwQueryBalances,
     cwQueryPrices,
 
-    owner,
+    cwQueryCw20Balances,
   } = userCwHelpers;
 
   return {
+    owner,
+
     cwDeposit,
     cwSwap,
 
-    cwUpdateConfig,
-    cwUpdateToken,
     cwUnbond,
     cwWithdraw,
     cwClaim,
@@ -64,10 +66,9 @@ async function init() {
     cwQueryLiquidity,
     cwQueryProviders,
     cwQueryTokens,
-    cwQueryBalances,
     cwQueryPrices,
 
-    owner,
+    cwQueryCw20Balances,
   };
 }
 

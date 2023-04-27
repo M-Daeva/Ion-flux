@@ -7,6 +7,11 @@ import { OfflineSigner } from "@cosmjs/launchpad";
 import { OfflineDirectSigner, EncodeObject } from "@cosmjs/proto-signing";
 import { stringToPath } from "@cosmjs/crypto";
 import {
+  INJ_DENOM,
+  DEFAULT_GAS_PRICE,
+  DEFAULT_GAS_LIMIT,
+} from "@injectivelabs/utils";
+import {
   ClientStruct,
   NetworkData,
   ChainResponse,
@@ -21,8 +26,8 @@ import {
 } from "@cosmjs/stargate";
 
 const fee: StdFee = {
-  amount: [coin(700_000_000, "inj")],
-  gas: `${700_000}`,
+  amount: [coin(DEFAULT_GAS_PRICE, INJ_DENOM)],
+  gas: `${DEFAULT_GAS_LIMIT}`,
 };
 
 declare global {

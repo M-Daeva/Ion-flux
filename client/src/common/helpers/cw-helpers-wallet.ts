@@ -7,6 +7,7 @@ import { UpdateConfigStruct, ClientStructWithKeplr } from "./interfaces";
 import { IonFluxClient as Client } from "../codegen/IonFlux.client";
 import { IonFluxMessageComposer as MessageComposer } from "../codegen/IonFlux.message-composer";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
+import TOKENS from "../config/tokens.json";
 
 const _toStr = (n?: number): string | undefined => (n ? `${n}` : undefined);
 
@@ -198,6 +199,49 @@ async function getCwHelpers(
     }
   }
 
+  async function cwQueryCw20Balances(wallet: string) {
+    const tokens: [string, string][] = Object.entries(TOKENS);
+    let balanceList: [string, number][] = [];
+
+    const promiseList = tokens.map(async ([k, v]) => {
+      if (k === "CONTRACT_CODE") return;
+
+      try {
+        const res: { balance: string } = await client.client.queryContractSmart(
+          v,
+          {
+            balance: { address: wallet },
+          }
+        );
+
+        balanceList.push([v, +res.balance / 1e6]);
+      } catch (error) {}
+    });
+
+    await Promise.all(promiseList);
+
+    balanceList = _tokenAddrToSymbolList(balanceList);
+
+    l("\n", balanceList, "\n");
+
+    return balanceList;
+  }
+
+  function _tokenAddrToSymbolList(addrAndValueList: [string, any][]) {
+    const tokens: [string, string][] = Object.entries(TOKENS);
+    let res: [string, any][] = [];
+
+    for (const [addr, value] of addrAndValueList) {
+      let token = tokens.find(([k, v]) => v === addr);
+      let symbol = token?.[0].split("_")[0];
+      if (!symbol) continue;
+
+      res.push([symbol, value]);
+    }
+
+    return res.sort((a, b) => (a[0] >= b[0] ? 1 : -1));
+  }
+
   return {
     owner,
 
@@ -218,6 +262,8 @@ async function getCwHelpers(
     cwQueryTokens,
     cwQueryBalances,
     cwQueryPrices,
+
+    cwQueryCw20Balances,
   };
 }
 
