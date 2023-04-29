@@ -2,7 +2,10 @@ import { initStorage } from "../storages";
 import { EncryptionKeyStorage } from "../../common/helpers/interfaces";
 import { decrypt } from "../../common/utils";
 import { init } from "../../common/signers/injective";
-import { SEED_DAPP } from "../../common/config/testnet-config.json";
+import {
+  SEED_DAPP,
+  CONTRACT_ADDRESS,
+} from "../../common/config/testnet-config.json";
 import { DAPP_ADDRESS } from "../envs";
 
 let _encryptionKeyStorage = initStorage<EncryptionKeyStorage>(
@@ -24,7 +27,7 @@ async function setEncryptionKey(value: string): Promise<string> {
     const seed = decrypt(SEED_DAPP, value);
     if (!seed) throw new Error(`Key '${value}' is wrong!`);
 
-    const { injectiveAddress } = await init(seed);
+    const { injectiveAddress } = await init(CONTRACT_ADDRESS, seed);
 
     if (injectiveAddress !== DAPP_ADDRESS)
       throw new Error(`Key '${value}' is wrong!`);

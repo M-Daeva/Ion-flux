@@ -1,7 +1,8 @@
 import { l } from "../utils";
+import { fromUtf8 } from "@cosmjs/encoding";
 import { calculateFee as _calculateFee, GasPrice } from "@cosmjs/stargate";
+import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { ChainId } from "@injectivelabs/ts-types";
-import { CONTRACT_ADDRESS } from "../config/testnet-config.json";
 import {
   Network,
   getNetworkEndpoints,
@@ -142,6 +143,7 @@ function signAndBroadcastWrapper(
 }
 
 function getExecuteContractMsg(
+  contractAddress: string,
   sender: string,
   msg: object,
   funds?:
@@ -155,7 +157,7 @@ function getExecuteContractMsg(
       }[]
 ) {
   return new MsgExecuteContract({
-    contractAddress: CONTRACT_ADDRESS,
+    contractAddress,
     sender,
     msg,
     funds,
@@ -163,6 +165,7 @@ function getExecuteContractMsg(
 }
 
 async function init(
+  contractAddress: string,
   seed: string,
   margin: number = 1.2,
   gasPrice: string | GasPrice = `${DEFAULT_GAS_PRICE}${INJ_DENOM}`
@@ -178,11 +181,38 @@ async function init(
     }[]
   ) => {
     return await signAndBroadcast([
-      getExecuteContractMsg(injectiveAddress, msg, funds),
+      getExecuteContractMsg(contractAddress, injectiveAddress, msg, funds),
     ]);
   };
 
-  return { privateKey, injectiveAddress, signAndBroadcast, executeContract };
+  const execWrapper = async (
+    msgEncodeObject: MsgExecuteContractEncodeObject,
+    funds?: {
+      denom: string;
+      amount: string;
+    }[]
+  ) => {
+    try {
+      const msgArr = msgEncodeObject.value?.msg;
+      if (!msgArr) throw new Error("Msg of msgEncodeObject is not found!");
+
+      const msg = JSON.parse(fromUtf8(msgArr));
+      const tx = await executeContract(msg, funds);
+      // const { txHash, gasWanted, gasUsed, rawLog } = tx;
+      // l("\n", { txHash, gasWanted, gasUsed, rawLog }, "\n");
+      return tx;
+    } catch (error) {
+      l("\n", error, "\n");
+    }
+  };
+
+  return {
+    privateKey,
+    injectiveAddress,
+    signAndBroadcast,
+    executeContract,
+    execWrapper,
+  };
 }
 
 export { init };

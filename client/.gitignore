@@ -10,4 +10,4 @@
 *.cert
 *.key
 notes
-src/frontend
+/dist

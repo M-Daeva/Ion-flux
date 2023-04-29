@@ -1,12 +1,13 @@
 import { l } from "../utils";
+import { tokenAddrToSymbolList } from "./general";
 import { getCwClient, fee } from "../signers";
 import { CONTRACT_ADDRESS } from "../config/testnet-config.json";
 import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { UpdateConfigStruct, ClientStructWithKeplr } from "./interfaces";
+import type { UpdateConfigStruct, ClientStructWithKeplr } from "./interfaces";
 import { IonFluxClient as Client } from "../codegen/IonFlux.client";
 import { IonFluxMessageComposer as MessageComposer } from "../codegen/IonFlux.message-composer";
-import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
+import type { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import TOKENS from "../config/tokens.json";
 
 const _toStr = (n?: number): string | undefined => (n ? `${n}` : undefined);
@@ -22,10 +23,13 @@ async function getCwHelpers(
   const composer = new MessageComposer(owner, contractAddress);
   const client = new Client(_client, owner, contractAddress);
 
+  // TODO: check if it returns Promise<TxResponse | undefined>
   async function _msgWrapper(msg: MsgExecuteContractEncodeObject) {
-    const tx = await _client.signAndBroadcast(owner, [msg], fee);
-    l("\n", tx, "\n");
-    return tx;
+    try {
+      return await _client.signAndBroadcast(owner, [msg], fee);
+    } catch (error) {
+      l("\n", error, "\n");
+    }
   }
 
   async function cwDeposit(tokenAddr: string, amount: number) {
@@ -131,9 +135,7 @@ async function getCwHelpers(
 
   async function cwQueryConfig() {
     try {
-      const res = await client.queryConfig();
-      l("\n", res, "\n");
-      return res;
+      return await client.queryConfig();
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -141,9 +143,7 @@ async function getCwHelpers(
 
   async function cwQueryTokensWeight(addressList: string[] = []) {
     try {
-      const res = await client.queryTokensWeight({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryTokensWeight({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -151,9 +151,7 @@ async function getCwHelpers(
 
   async function cwQueryLiquidity(addressList: string[] = []) {
     try {
-      const res = await client.queryLiquidity({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryLiquidity({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -161,9 +159,7 @@ async function getCwHelpers(
 
   async function cwQueryProviders(addressList: string[] = []) {
     try {
-      const res = await client.queryProviders({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryProviders({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -171,9 +167,7 @@ async function getCwHelpers(
 
   async function cwQueryTokens(addressList: string[] = []) {
     try {
-      const res = await client.queryTokens({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryTokens({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -181,9 +175,7 @@ async function getCwHelpers(
 
   async function cwQueryBalances(addressList: string[] = []) {
     try {
-      const res = await client.queryBalances({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryBalances({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -191,9 +183,7 @@ async function getCwHelpers(
 
   async function cwQueryPrices(addressList: string[] = []) {
     try {
-      const res = await client.queryPrices({ addressList });
-      l("\n", res, "\n");
-      return res;
+      return await client.queryPrices({ addressList });
     } catch (error) {
       l("\n", error, "\n");
     }
@@ -215,31 +205,17 @@ async function getCwHelpers(
         );
 
         balanceList.push([v, +res.balance / 1e6]);
-      } catch (error) {}
+      } catch (error) {
+        l("\n", error, "\n");
+      }
     });
 
     await Promise.all(promiseList);
 
-    balanceList = _tokenAddrToSymbolList(balanceList);
-
-    l("\n", balanceList, "\n");
+    balanceList = tokenAddrToSymbolList(balanceList);
+    //l("\n", { Cw20Balances: balanceList }, "\n");
 
     return balanceList;
-  }
-
-  function _tokenAddrToSymbolList(addrAndValueList: [string, any][]) {
-    const tokens: [string, string][] = Object.entries(TOKENS);
-    let res: [string, any][] = [];
-
-    for (const [addr, value] of addrAndValueList) {
-      let token = tokens.find(([k, v]) => v === addr);
-      let symbol = token?.[0].split("_")[0];
-      if (!symbol) continue;
-
-      res.push([symbol, value]);
-    }
-
-    return res.sort((a, b) => (a[0] >= b[0] ? 1 : -1));
   }
 
   return {

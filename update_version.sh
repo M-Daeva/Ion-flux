@@ -1,4 +1,4 @@
-APP_NAME="starbound-client-testnet"
+APP_NAME="ion-flux-client-testnet"
 ACCOUNT_NAME="mdaeva"
 
 read -p "Enter the new version number: " new_version
