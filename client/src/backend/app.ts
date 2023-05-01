@@ -6,6 +6,7 @@ import { init } from "../common/workers/testnet-backend-workers";
 import { fromDecimalToMicro, fromMicroToDecimal } from "../common/utils";
 import {
   SEED_ALICE,
+  SEED_DAPP,
   CONTRACT_ADDRESS,
 } from "../common/config/testnet-config.json";
 import {
@@ -55,7 +56,8 @@ async function main() {
   // );
   // l(await cwDeposit(ATOM_CONTRACT, 110 * 1e6));
   // l(await cwDeposit(USDC_CONTRACT, 120 * 1e6));
-  l((await cwQueryProviders([owner]))?.[0]);
+
+  // l((await cwQueryProviders([owner]))?.[0]);
 
   //l(await cwQueryCw20Balances(owner));
 

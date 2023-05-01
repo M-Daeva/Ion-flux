@@ -71,7 +71,8 @@ function _getChainInfo(
       coinDecimals: asset.exponent,
       coinGeckoId: asset.coinGeckoId,
     },
-    bip44: { coinType: 118 },
+    // bip44: { coinType: 118 },
+    bip44: { coinType: 60 },
     bech32Config: {
       bech32PrefixAccAddr: `${network.bech32_prefix}`,
       bech32PrefixAccPub: `${network.bech32_prefix}pub`,

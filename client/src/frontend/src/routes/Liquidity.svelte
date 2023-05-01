@@ -2,7 +2,10 @@
   import { l } from "../../../common/utils";
   import { get } from "svelte/store";
   import { displayModal, getImageUrl } from "../services/helpers";
-  import { init } from "../../../common/workers/testnet-frontend-workers";
+  // Error: block height: 32392254, timeout height: 10926748: tx timeout height
+  //import { init } from "../../../common/workers/testnet-simple";
+  // Error: signature verification failed; please verify account number (30476) and chain-id (injective-1): unauthorized
+  import { init } from "../../../common/workers/testnet-strat";
   import {
     tokenInfoList,
     addrToSymbol,
@@ -116,19 +119,27 @@
     });
   });
 
-  // async function withdraw() {
-  //   try {
-  //     const tokenAddr = tokenInfoList.find(
-  //       ([tokenAddr, symbol, priceFeedStr]) => symbol === currentRewardsSymbol
-  //     )[0];
-  //     const { cwWithdraw } = await init();
-  //     const tx = await cwWithdraw(tokenAddr, 100);
-  //     l({ tx });
-  //     displayModal(tx);
-  //   } catch (error) {
-  //     l(error);
-  //   }
-  // }
+  async function deposit(tokenSymbol: string, amount: number) {
+    try {
+      const { cwDeposit } = await init();
+      const tx = await cwDeposit(symbolToAddr(tokenSymbol), amount);
+      l({ tx });
+      displayModal(tx);
+    } catch (error) {
+      l(error);
+    }
+  }
+
+  async function unbond(tokenSymbol: string, amount: number) {
+    try {
+      const { cwUnbond } = await init();
+      const tx = await cwUnbond(symbolToAddr(tokenSymbol), amount);
+      l({ tx });
+      displayModal(tx);
+    } catch (error) {
+      l(error);
+    }
+  }
 </script>
 
 <div class="flex flex-col px-4 -mt-3 pb-4">
@@ -175,13 +186,15 @@
 
     <div class="flex flex-col">
       <div>
-        <button class="btn btn-secondary m-0 w-28 mb-5" on:click={() => {}}
-          >Claim</button
+        <button
+          class="btn btn-secondary m-0 w-28 mb-5"
+          on:click={() => deposit("ATOM", 100 * 1e6)}>Claim</button
         >
       </div>
       <div class="flex flex-row">
-        <button class="btn btn-secondary m-0 w-28" on:click={() => {}}
-          >Swap And Claim</button
+        <button
+          class="btn btn-secondary m-0 w-28"
+          on:click={() => unbond("ATOM", 5 * 1e6)}>Swap And Claim</button
         >
         <label for="symbol-selector" class="mx-2 my-auto">to</label>
         <select
