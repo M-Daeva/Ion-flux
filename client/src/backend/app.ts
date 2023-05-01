@@ -43,8 +43,8 @@ async function main() {
     cwQueryCw20Balances,
   } = await init(await getSeed(SEED_DAPP));
 
-  l(await cwQueryConfig());
-  l(await cwUpdateConfig({ priceAge: 8000000 }));
+  // l(await cwQueryConfig());
+  // l(await cwUpdateConfig({ priceAge: 8000000 }));
   // await cwQueryConfig();
 
   // l(
@@ -57,11 +57,11 @@ async function main() {
   // l(await cwDeposit(ATOM_CONTRACT, 110 * 1e6));
   // l(await cwDeposit(USDC_CONTRACT, 120 * 1e6));
 
-  // l((await cwQueryProviders([owner]))?.[0]);
+  l((await cwQueryProviders())?.[0]);
 
   //l(await cwQueryCw20Balances(owner));
 
-  l(await cwQueryPrices());
+  // l(await cwQueryPrices());
   // await cwInitTokens();
   // await cwQueryPrices();
 }

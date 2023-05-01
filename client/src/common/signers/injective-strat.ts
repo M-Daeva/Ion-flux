@@ -12,6 +12,7 @@ import {
   BigNumberInBase,
   DEFAULT_BLOCK_TIMEOUT_HEIGHT,
   DEFAULT_GAS_PRICE,
+  DEFAULT_STD_FEE,
 } from "@injectivelabs/utils";
 import {
   ChainRestAuthApi,
@@ -26,22 +27,11 @@ import {
   MsgExecuteContract,
   type DirectSignResponse,
 } from "@injectivelabs/sdk-ts";
-import { toUtf8 } from "cosmwasm";
 import { WalletStrategy } from "@injectivelabs/wallet-ts";
 import { ChainId } from "@injectivelabs/ts-types";
 
-async function simulateFee(
-  txRaw: TxRaw,
-  signature: Uint8Array,
-  margin: number,
-  gasPrice: string | GasPrice
-) {
-  const network = getNetworkInfo(Network.TestnetK8s);
-  txRaw.signatures = [signature];
-  const txService = new TxGrpcClient(network.grpc);
-
-  const gasSimulated = (await txService.simulate(txRaw)).gasInfo.gasUsed;
-  const gasWanted = Math.ceil(margin * gasSimulated);
+async function simulateFee(margin: number, gasPrice: string | GasPrice) {
+  const gasWanted = Math.ceil(margin * +DEFAULT_STD_FEE.gas);
 
   return _calculateFee(gasWanted, gasPrice);
 }
@@ -88,6 +78,8 @@ async function composeTxWithKeplr(
     signBytes: _signBytes,
     signDoc: _signDoc,
   } = createTransaction(txArgs);
+
+  txArgs.fee = await simulateFee(margin, gasPrice);
 
   const { txRaw, signBytes, signDoc } = createTransaction(txArgs);
 
@@ -173,7 +165,7 @@ function getExecuteContractMsg(
 async function initWithKeplr(
   contractAddress: string,
   walletStrategy: WalletStrategy,
-  margin: number = 1.2,
+  margin: number = 1.8,
   gasPrice: string | GasPrice = `${DEFAULT_GAS_PRICE}${INJ_DENOM}`
 ) {
   const injectiveAddress: string = (await walletStrategy.getAddresses())[0];

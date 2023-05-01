@@ -32,16 +32,29 @@
   let currentRewardsSymbol = "";
   let currentRewardsSwapOutSymbol = "";
   let cw20Balances: [string, number][] = [];
-
   let rewardsCostList: [string, number][] = [];
-  let currentRewardsCost =
-    rewardsCostList.find(
+  let priceList: [string, string][] = [];
+
+  $: rewardsCostList =
+    provider.map(({ token_addr, rewards }) => {
+      const contractPrices = priceList || [];
+
+      const currentPrice =
+        +contractPrices.find(([addr, price]) => addr === token_addr)?.[1] || 0;
+
+      const currentRewardsAmount = +rewards || 0;
+
+      l({ currentRewardsSymbol, currentPrice, currentRewardsAmount });
+
+      return [token_addr, currentPrice * currentRewardsAmount];
+    }) || [];
+
+  $: currentRewardsCost =
+    (rewardsCostList.find(
       ([addr, cost]) => addr === symbolToAddr(currentRewardsSymbol)
-    )?.[1] || 0;
-  let totalRewardsCost = rewardsCostList.reduce(
-    (acc, cur) => acc + (cur?.[1] || 0),
-    0
-  );
+    )?.[1] || 0) / 1e6;
+  $: totalRewardsCost =
+    rewardsCostList.reduce((acc, cur) => acc + (+cur?.[1] || 0), 0) / 1e6;
 
   const actionToExecuteList = ["Withdraw", "Unbond", "Deposit"];
 
@@ -52,29 +65,23 @@
     volume: string;
   }[] = [];
 
+  // updatePrices
+  contractPricesStorage.subscribe((value) => {
+    priceList = value;
+  });
+
   // update rewards
   contractProvidersStorage.subscribe((value) => {
     provider =
       value.find(([addr, asset]) => addr === get(addressStorage))?.[1] || [];
+
+    l({ provider });
 
     providerToDisplay = provider.map((item) => ({
       ...item,
       actionToExecute: actionToExecuteList[0],
       amountToExecute: "0",
     }));
-
-    rewardsCostList = provider.map(({ token_addr, rewards }) => {
-      const contractPrices = get(contractPricesStorage) || [];
-
-      const currentPrice =
-        +contractPrices.find(([addr, price]) => {
-          addr === token_addr;
-        })?.[1] || 0;
-
-      const currentRewardsAmount = +rewards || 0;
-
-      return [addrToSymbol(token_addr), currentPrice * currentRewardsAmount];
-    });
   });
 
   // update symbols
@@ -163,23 +170,13 @@
           {/each}
         </select>
         <span class="mx-1 my-auto">:</span>
-        <input
-          class="bg-transparent outline-none border-none select-none text-left my-auto mr-2"
-          type="text"
-          bind:value={currentRewardsCost}
-          readonly
-        />
+        <span class="mx-1 my-auto">{trimDecimal(`${currentRewardsCost}`)}</span>
       </div>
 
       <div class="flex flex-row align-middle self-center justify-center mt-5">
         <p class="text-center">
           Sum in USD:
-          <input
-            class="bg-transparent outline-none border-none select-none text-left"
-            type="text"
-            bind:value={totalRewardsCost}
-            readonly
-          />
+          <span class="mx-1 my-auto">{trimDecimal(`${totalRewardsCost}`)}</span>
         </p>
       </div>
     </div>

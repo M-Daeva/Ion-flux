@@ -8,14 +8,21 @@
     contractPricesStorage,
   } from "../services/storage";
   import { trimDecimal, symbolToAddr } from "../../../common/helpers/general";
-  import { init } from "../../../common/workers/testnet-frontend-workers";
+  import { init } from "../../../common/workers/testnet-strat";
 
   let priceList: [string, string][] = [];
   let cw20Balances: [string, number][] = [];
   let symbolIn = "";
   let symbolOut = "";
-  let exchangeRatio = 0;
   let amountIn = 0;
+
+  $: priceIn = priceList.find(
+    ([addr, price]) => addr === symbolToAddr(symbolIn)
+  )?.[1];
+  $: priceOut = priceList.find(
+    ([addr, price]) => addr === symbolToAddr(symbolOut)
+  )?.[1];
+  $: exchangeRatio = +priceIn / +priceOut;
   $: amountOut = +trimDecimal(`${amountIn * exchangeRatio}`);
 
   contractCw20BalancesStorage.subscribe((value) => {
@@ -26,23 +33,27 @@
 
   contractPricesStorage.subscribe((value) => {
     priceList = value;
-    updateExchangeRatio();
   });
-
-  function updateExchangeRatio() {
-    const priceIn = priceList.find(
-      ([addr, price]) => addr === symbolToAddr(symbolIn)
-    )?.[1];
-    const priceOut = priceList.find(
-      ([addr, price]) => addr === symbolToAddr(symbolOut)
-    )?.[1];
-    exchangeRatio = +priceIn / +priceOut;
-  }
 
   async function updatePrices() {
     const { cwQueryPrices } = await init();
     const prices = await cwQueryPrices();
     contractPricesStorage.set(prices);
+  }
+
+  async function swap() {
+    try {
+      const { cwSwap } = await init();
+      const tx = await cwSwap(
+        symbolToAddr(symbolIn),
+        amountIn * 1e6,
+        symbolToAddr(symbolOut)
+      );
+      l({ tx });
+      displayModal(tx);
+    } catch (error) {
+      l(error);
+    }
   }
 
   setInterval(updatePrices, 15_000);
@@ -58,7 +69,6 @@
         id="symbol-selector"
         class="w-28 mx-0 bg-stone-700 my-auto"
         bind:value={symbolIn}
-        on:change={updateExchangeRatio}
       >
         {#each cw20Balances as [tokenSymbol, _]}
           <option value={tokenSymbol}>
@@ -89,7 +99,6 @@
         id="symbol-selector"
         class="w-28 mx-0 bg-stone-700 my-auto"
         bind:value={symbolOut}
-        on:change={updateExchangeRatio}
       >
         {#each cw20Balances as [tokenSymbol, _]}
           <option value={tokenSymbol}>
@@ -113,7 +122,6 @@
       <span class="ml-1">{trimDecimal(`${exchangeRatio}`)}</span>
       <span class="ml-1">{symbolOut}</span>
     </div>
-    <button class="btn btn-secondary mt-5 w-28" on:click={() => {}}>Swap</button
-    >
+    <button class="btn btn-secondary mt-5 w-28" on:click={swap}>Swap</button>
   </div>
 </div>
