@@ -1,11 +1,10 @@
 <script lang="ts">
   import { l } from "../../../common/utils";
-  import { get } from "svelte/store";
   import { displayModal, getImageUrl } from "../services/helpers";
   import {
-    contractTokensStorage,
     contractCw20BalancesStorage,
     contractPricesStorage,
+    initAll,
   } from "../services/storage";
   import { trimDecimal, symbolToAddr } from "../../../common/helpers/general";
   import { init } from "../../../common/workers/testnet-strat";
@@ -49,8 +48,9 @@
         amountIn * 1e6,
         symbolToAddr(symbolOut)
       );
-      l({ tx });
+      l(tx);
       displayModal(tx);
+      await initAll();
     } catch (error) {
       l(error);
     }

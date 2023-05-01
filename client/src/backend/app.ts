@@ -57,9 +57,9 @@ async function main() {
   // l(await cwDeposit(ATOM_CONTRACT, 110 * 1e6));
   // l(await cwDeposit(USDC_CONTRACT, 120 * 1e6));
 
-  l((await cwQueryProviders())?.[0]);
+  //l((await cwQueryProviders())?.[0]);
 
-  //l(await cwQueryCw20Balances(owner));
+  l(await cwQueryCw20Balances(CONTRACT_ADDRESS));
 
   // l(await cwQueryPrices());
   // await cwInitTokens();

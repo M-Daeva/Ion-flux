@@ -16,6 +16,7 @@
     contractTokensStorage,
     contractTokensWeightStorage,
     contractLiquidityStorage,
+    initAll,
   } from "../services/storage";
   import type { Asset } from "../../../common/codegen/IonFlux.types";
 
@@ -32,6 +33,19 @@
   let currentRewardsSwapOutSymbol = "";
   let cw20Balances: [string, number][] = [];
   let priceList: [string, string][] = [];
+
+  let poolsToDisplay: {
+    token_addr: string;
+    weight: string;
+    liquidity: string;
+    volume: string;
+  }[] = [];
+
+  const handlerList = {
+    Deposit: deposit,
+    Unbond: unbond,
+    Withdraw: withdraw,
+  };
 
   $: currentRewards =
     +(
@@ -50,15 +64,6 @@
       return acc + currentPrice * currentRewardsAmount;
     }, 0) / 1e6;
 
-  const actionToExecuteList = ["Withdraw", "Unbond", "Deposit"];
-
-  let poolsToDisplay: {
-    token_addr: string;
-    weight: string;
-    liquidity: string;
-    volume: string;
-  }[] = [];
-
   // updatePrices
   contractPricesStorage.subscribe((value) => {
     priceList = value;
@@ -71,7 +76,7 @@
 
     providerToDisplay = provider.map((item) => ({
       ...item,
-      actionToExecute: actionToExecuteList[0],
+      actionToExecute: Object.keys(handlerList)[0],
       amountToExecute: "0",
     }));
   });
@@ -122,8 +127,9 @@
     try {
       const { cwClaim } = await init();
       const tx = await cwClaim();
-      l({ tx });
+      l(tx);
       displayModal(tx);
+      await initAll();
     } catch (error) {
       l(error);
     }
@@ -135,30 +141,46 @@
       const tx = await cwSwapAndClaim(
         symbolToAddr(currentRewardsSwapOutSymbol)
       );
-      l({ tx });
+      l(tx);
       displayModal(tx);
+      await initAll();
     } catch (error) {
       l(error);
     }
   }
 
-  async function deposit(tokenSymbol: string, amount: number) {
+  async function deposit(tokenAddr: string, amount: number) {
+    l({ tokenSymbol: addrToSymbol(tokenAddr), amount });
     try {
       const { cwDeposit } = await init();
-      const tx = await cwDeposit(symbolToAddr(tokenSymbol), amount);
-      l({ tx });
+      const tx = await cwDeposit(tokenAddr, amount);
+      l(tx);
       displayModal(tx);
+      await initAll();
     } catch (error) {
       l(error);
     }
   }
 
-  async function unbond(tokenSymbol: string, amount: number) {
+  async function unbond(tokenAddr: string, amount: number) {
     try {
       const { cwUnbond } = await init();
-      const tx = await cwUnbond(symbolToAddr(tokenSymbol), amount);
-      l({ tx });
+      const tx = await cwUnbond(tokenAddr, amount);
+      l(tx);
       displayModal(tx);
+      await initAll();
+    } catch (error) {
+      l(error);
+    }
+  }
+
+  async function withdraw(tokenAddr: string, amount: number) {
+    try {
+      const { cwWithdraw } = await init();
+      const tx = await cwWithdraw(tokenAddr, amount);
+      l(tx);
+      displayModal(tx);
+      await initAll();
     } catch (error) {
       l(error);
     }
@@ -292,7 +314,7 @@
                   class="w-28 mx-0 bg-stone-700 my-auto"
                   bind:value={actionToExecute}
                 >
-                  {#each actionToExecuteList as actionToExecute}
+                  {#each Object.keys(handlerList) as actionToExecute}
                     <option value={actionToExecute}>
                       {actionToExecute}
                     </option>
@@ -307,8 +329,14 @@
                 />
               </div>
 
-              <button class="btn btn-secondary m-0 w-3/12" on:click={() => {}}
-                >Execute</button
+              <button
+                class="btn btn-secondary m-0 w-3/12"
+                on:click={() => {
+                  handlerList[actionToExecute](
+                    token_addr,
+                    +amountToExecute * 1e6
+                  );
+                }}>Execute</button
               >
             </td>
           </tr>
@@ -370,11 +398,11 @@
             >
             <td
               class="flex justify-center items-center w-2/12 bg-inherit border-b-0"
-              >{+liquidity / 1e6}</td
+              >{trimDecimal(`${+liquidity / 1e6}`)}</td
             >
             <td
               class="flex justify-center items-center w-2/12 bg-inherit border-b-0"
-              >{+volume / 1e6}</td
+              >{trimDecimal(`${+volume / 1e6}`)}</td
             >
             <td
               class="flex justify-around content-center w-2/12 bg-opacity-90 bg-slate-800 border-b-0"
@@ -394,7 +422,7 @@
                       bonded: "0",
                       requested: "0",
                       unbonded: "0",
-                      actionToExecute: actionToExecuteList[0],
+                      actionToExecute: Object.keys(handlerList)[0],
                       amountToExecute: "0",
                     },
                   ];

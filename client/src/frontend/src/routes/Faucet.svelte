@@ -10,7 +10,7 @@
   import { get } from "svelte/store";
   import { baseURL } from "../config";
   import { init } from "../../../common/workers/testnet-frontend-workers";
-  import { tokenInfoList, symbolToAddr } from "../../../common/helpers/general";
+  import { symbolToAddr, trimDecimal } from "../../../common/helpers/general";
 
   let req = createRequest({ baseURL: baseURL + "/api" });
 
@@ -28,7 +28,7 @@
           tokenAddr: symbolToAddr(currentSymbol),
         }
       );
-
+      l(tx);
       displayModal(tx);
 
       const { cwQueryCw20Balances } = await init();
@@ -88,7 +88,7 @@
           >
             {#each cw20BalancesItem as rowValue}
               <td class="py-2.5 w-24 text-center bg-inherit border-b-0"
-                >{rowValue}</td
+                >{trimDecimal(`${rowValue}`)}</td
               >
             {/each}
           </tr>

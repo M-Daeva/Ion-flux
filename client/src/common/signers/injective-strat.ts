@@ -72,7 +72,7 @@ async function composeTxWithKeplr(
     // timeoutHeight: timeoutHeight.toNumber(),
     accountNumber: baseAccount.accountNumber,
   };
-  l({ chainId: txArgs.chainId, accountNumber: txArgs.accountNumber });
+
   const {
     txRaw: _txRaw,
     signBytes: _signBytes,
