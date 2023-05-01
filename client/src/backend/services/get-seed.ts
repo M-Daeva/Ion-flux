@@ -1,14 +1,13 @@
 import { access, readFile } from "fs/promises";
 import { rootPath, decrypt, l } from "../../common/utils";
-import { SEED_DAPP } from "../../common/config/testnet-config.json";
 
-async function getSeed(): Promise<string> {
+async function getSeed(seedEncrypted: string): Promise<string> {
   const keyPath = rootPath("../../.test-wallets/key");
 
   try {
     await access(keyPath);
     const encryptionKey = await readFile(keyPath, { encoding: "utf-8" });
-    const seed = decrypt(SEED_DAPP, encryptionKey);
+    const seed = decrypt(seedEncrypted, encryptionKey);
     if (!seed) throw new Error("Can not get seed!");
     return seed;
   } catch (error) {

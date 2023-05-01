@@ -40,6 +40,20 @@ function tokenAddrToSymbolList(addrAndValueList: [string, any][]) {
   return res.sort((a, b) => (a[0] >= b[0] ? 1 : -1));
 }
 
+function symbolToAddr(symbol: string) {
+  const tokens: [string, string][] = Object.entries(TOKENS);
+  const token = tokens.find(([k, v]) => k.includes(symbol)) || tokens[1];
+  const addr = token[1];
+  return addr;
+}
+
+function addrToSymbol(addr: string) {
+  const tokens: [string, string][] = Object.entries(TOKENS);
+  const token = tokens.find(([k, v]) => v === addr) || tokens[1];
+  const symbol = token[0].split("_")[0];
+  return symbol;
+}
+
 // removes additional digits on display
 function trimDecimal(price: string | Decimal, err: string = "0.001"): string {
   price = price.toString();
@@ -60,4 +74,10 @@ function trimDecimal(price: string | Decimal, err: string = "0.001"): string {
   return price.replace(/0/g, "") === "." ? "0" : price;
 }
 
-export { trimDecimal, tokenAddrToSymbolList, tokenInfoList };
+export {
+  trimDecimal,
+  tokenAddrToSymbolList,
+  tokenInfoList,
+  symbolToAddr,
+  addrToSymbol,
+};

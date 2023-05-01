@@ -1,7 +1,7 @@
 import { l } from "../utils";
 import { tokenAddrToSymbolList } from "./general";
 import { init } from "../signers/injective";
-import { CONTRACT_ADDRESS, RPC } from "../config/testnet-config.json";
+import { RPC, CONTRACT_ADDRESS } from "../config/testnet-config.json";
 import TOKENS from "../config/tokens.json";
 import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
@@ -13,6 +13,7 @@ import {
   CosmWasmClient,
   MsgExecuteContractEncodeObject,
 } from "@cosmjs/cosmwasm-stargate";
+import { toBase64 } from "@injectivelabs/sdk-ts";
 
 const _toStr = (n?: number): string | undefined => (n ? `${n}` : undefined);
 
@@ -24,17 +25,19 @@ async function getCwHelpers(seed: string) {
   const queryClient = new QueryClient(cosmwasmClient, CONTRACT_ADDRESS);
 
   async function cwDeposit(tokenAddr: string, amount: number) {
-    let contractMsg = { deposit: {} };
+    const { execWrapper: _execWrapper } = await init(tokenAddr, seed);
 
-    let tokenMsg = {
+    const contractMsg = { deposit: {} };
+
+    const tokenMsg = {
       send: {
         contract: CONTRACT_ADDRESS,
         amount: `${amount}`,
-        msg: toUtf8(JSON.stringify(contractMsg)),
+        msg: toBase64(contractMsg),
       },
     };
 
-    let msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
+    const msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: injectiveAddress,
@@ -44,7 +47,7 @@ async function getCwHelpers(seed: string) {
       }),
     };
 
-    return await execWrapper(msgExecuteContractEncodeObject);
+    return await _execWrapper(msgExecuteContractEncodeObject);
   }
 
   async function cwSwap(
@@ -52,21 +55,23 @@ async function getCwHelpers(seed: string) {
     amount: number,
     tokenOutAddr: string
   ) {
-    let contractMsg = {
+    const { execWrapper: _execWrapper } = await init(tokenAddr, seed);
+
+    const contractMsg = {
       swap: {
         token_out_addr: tokenOutAddr,
       },
     };
 
-    let tokenMsg = {
+    const tokenMsg = {
       send: {
         contract: CONTRACT_ADDRESS,
         amount: `${amount}`,
-        msg: toUtf8(JSON.stringify(contractMsg)),
+        msg: toBase64(contractMsg),
       },
     };
 
-    let msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
+    const msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: injectiveAddress,
@@ -76,7 +81,7 @@ async function getCwHelpers(seed: string) {
       }),
     };
 
-    return await execWrapper(msgExecuteContractEncodeObject);
+    return await _execWrapper(msgExecuteContractEncodeObject);
   }
 
   async function cwUpdateConfig(updateConfigStruct: UpdateConfigStruct) {
@@ -190,14 +195,14 @@ async function getCwHelpers(seed: string) {
   ) {
     const { execWrapper: _execWrapper } = await init(tokenAddr, seed);
 
-    let tokenMsg = {
+    const tokenMsg = {
       transfer: {
         recipient,
         amount: `${amount}`,
       },
     };
 
-    let msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
+    const msgExecuteContractEncodeObject: MsgExecuteContractEncodeObject = {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: injectiveAddress,

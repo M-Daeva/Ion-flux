@@ -174,7 +174,7 @@
       <div
         class="w-full sm:w-4/12 mb-4 sm:mb-0 flex items-center justify-center"
       >
-        <a href="/" class="flex ml-2">
+        <a href="https://github.com/M-Daeva/ion-flux" class="flex ml-2">
           <p class="font-medium">Built by M. Daeva</p>
           <img
             src={getImageUrl("github.png")}

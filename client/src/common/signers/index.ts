@@ -1,17 +1,21 @@
 import { l } from "../utils";
 import { fromBech32, toBech32 } from "@cosmjs/encoding";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { Keplr, Window as KeplrWindow, ChainInfo } from "@keplr-wallet/types";
+import type {
+  Keplr,
+  Window as KeplrWindow,
+  ChainInfo,
+} from "@keplr-wallet/types";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { OfflineSigner } from "@cosmjs/launchpad";
-import { OfflineDirectSigner, EncodeObject } from "@cosmjs/proto-signing";
+import type { OfflineSigner } from "@cosmjs/launchpad";
+import type { OfflineDirectSigner, EncodeObject } from "@cosmjs/proto-signing";
 import { stringToPath } from "@cosmjs/crypto";
 import {
   INJ_DENOM,
   DEFAULT_GAS_PRICE,
   DEFAULT_GAS_LIMIT,
 } from "@injectivelabs/utils";
-import {
+import type {
   ClientStruct,
   NetworkData,
   ChainResponse,
@@ -19,10 +23,10 @@ import {
 import {
   SigningStargateClient,
   coin,
-  StdFee,
+  type StdFee,
   calculateFee as _calculateFee,
   GasPrice,
-  DeliverTxResponse,
+  type DeliverTxResponse,
 } from "@cosmjs/stargate";
 
 const fee: StdFee = {

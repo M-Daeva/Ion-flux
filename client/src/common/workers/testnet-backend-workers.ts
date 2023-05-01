@@ -31,10 +31,27 @@ async function init(seed: string) {
   return {
     owner,
 
+    cwDeposit,
+    cwSwap,
+
     cwUpdateConfig,
+    cwUpdateToken,
+    cwUnbond,
+    cwWithdraw,
+    cwClaim,
+    cwSwapAndClaim,
+
+    cwQueryConfig,
+    cwQueryTokensWeight,
+    cwQueryLiquidity,
+    cwQueryProviders,
+    cwQueryTokens,
+    cwQueryBalances,
+    cwQueryPrices,
 
     cwTransfer,
     cwInitTokens,
+    cwQueryCw20Balances,
   };
 }
 
