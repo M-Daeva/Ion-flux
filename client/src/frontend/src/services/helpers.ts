@@ -10,17 +10,12 @@ function displayModal(tx: DeliverTxResponse | TxResponse | undefined) {
   let txStatus: "Success" | "Error";
   let txHash: string;
 
-  if (!tx) {
-    txStatus = "Success";
-    txHash = "";
-  } else {
-    txStatus = tx.rawLog.includes("failed") ? "Error" : "Success";
+  txStatus = tx.rawLog.includes("failed") ? "Error" : "Success";
 
-    if ("txHash" in tx) {
-      txHash = tx.txHash;
-    } else {
-      txHash = tx.transactionHash;
-    }
+  if ("txHash" in tx) {
+    txHash = tx.txHash;
+  } else {
+    txHash = tx.transactionHash;
   }
 
   txResStorage.set([txStatus, txHash]);

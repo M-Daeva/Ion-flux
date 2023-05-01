@@ -1,10 +1,9 @@
 <script lang="ts">
   import { l } from "../../../common/utils";
   import { get } from "svelte/store";
-  import { displayModal, getImageUrl } from "../services/helpers";
+  import { displayModal } from "../services/helpers";
   import { init } from "../../../common/workers/testnet-strat";
   import {
-    tokenInfoList,
     addrToSymbol,
     symbolToAddr,
     trimDecimal,
@@ -32,29 +31,24 @@
   let currentRewardsSymbol = "";
   let currentRewardsSwapOutSymbol = "";
   let cw20Balances: [string, number][] = [];
-  let rewardsCostList: [string, number][] = [];
   let priceList: [string, string][] = [];
 
-  $: rewardsCostList =
-    provider.map(({ token_addr, rewards }) => {
-      const contractPrices = priceList || [];
+  $: currentRewards =
+    +(
+      provider.find(
+        ({ token_addr }) => token_addr === symbolToAddr(currentRewardsSymbol)
+      )?.rewards || "0"
+    ) / 1e6;
 
+  $: totalRewardsCost =
+    provider.reduce((acc, cur) => {
+      const { rewards, token_addr } = cur;
       const currentPrice =
-        +contractPrices.find(([addr, price]) => addr === token_addr)?.[1] || 0;
-
+        +priceList.find(([addr, price]) => addr === token_addr)?.[1] || 0;
       const currentRewardsAmount = +rewards || 0;
 
-      l({ currentRewardsSymbol, currentPrice, currentRewardsAmount });
-
-      return [token_addr, currentPrice * currentRewardsAmount];
-    }) || [];
-
-  $: currentRewardsCost =
-    (rewardsCostList.find(
-      ([addr, cost]) => addr === symbolToAddr(currentRewardsSymbol)
-    )?.[1] || 0) / 1e6;
-  $: totalRewardsCost =
-    rewardsCostList.reduce((acc, cur) => acc + (+cur?.[1] || 0), 0) / 1e6;
+      return acc + currentPrice * currentRewardsAmount;
+    }, 0) / 1e6;
 
   const actionToExecuteList = ["Withdraw", "Unbond", "Deposit"];
 
@@ -74,8 +68,6 @@
   contractProvidersStorage.subscribe((value) => {
     provider =
       value.find(([addr, asset]) => addr === get(addressStorage))?.[1] || [];
-
-    l({ provider });
 
     providerToDisplay = provider.map((item) => ({
       ...item,
@@ -126,6 +118,30 @@
     });
   });
 
+  async function claim() {
+    try {
+      const { cwClaim } = await init();
+      const tx = await cwClaim();
+      l({ tx });
+      displayModal(tx);
+    } catch (error) {
+      l(error);
+    }
+  }
+
+  async function swapAndClaim() {
+    try {
+      const { cwSwapAndClaim } = await init();
+      const tx = await cwSwapAndClaim(
+        symbolToAddr(currentRewardsSwapOutSymbol)
+      );
+      l({ tx });
+      displayModal(tx);
+    } catch (error) {
+      l(error);
+    }
+  }
+
   async function deposit(tokenSymbol: string, amount: number) {
     try {
       const { cwDeposit } = await init();
@@ -170,7 +186,7 @@
           {/each}
         </select>
         <span class="mx-1 my-auto">:</span>
-        <span class="mx-1 my-auto">{trimDecimal(`${currentRewardsCost}`)}</span>
+        <span class="mx-1 my-auto">{trimDecimal(`${currentRewards}`)}</span>
       </div>
 
       <div class="flex flex-row align-middle self-center justify-center mt-5">
@@ -183,15 +199,13 @@
 
     <div class="flex flex-col">
       <div>
-        <button
-          class="btn btn-secondary m-0 w-28 mb-5"
-          on:click={() => deposit("ATOM", 5 * 1e6)}>Claim</button
+        <button class="btn btn-secondary m-0 w-28 mb-5" on:click={claim}
+          >Claim</button
         >
       </div>
       <div class="flex flex-row">
-        <button
-          class="btn btn-secondary m-0 w-28"
-          on:click={() => unbond("ATOM", 5 * 1e6)}>Swap And Claim</button
+        <button class="btn btn-secondary m-0 w-28" on:click={swapAndClaim}
+          >Swap And Claim</button
         >
         <label for="symbol-selector" class="mx-2 my-auto">to</label>
         <select
