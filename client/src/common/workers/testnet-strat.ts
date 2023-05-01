@@ -11,22 +11,6 @@ import {
   Wallet,
 } from "@injectivelabs/wallet-ts";
 import { ChainId } from "@injectivelabs/ts-types";
-import {
-  chainInfos,
-  getNetworkChainInfo,
-  getNetworkInfo,
-  Network,
-  getNetworkEndpoints,
-} from "@injectivelabs/networks";
-import type {
-  Keplr,
-  Window as KeplrWindow,
-  ChainInfo,
-} from "@keplr-wallet/types";
-
-declare global {
-  interface Window extends KeplrWindow {}
-}
 
 async function init() {
   if (!chainRegistry) return;
@@ -44,22 +28,6 @@ async function init() {
     wallet,
     chainId: CHAIN_ID,
   };
-
-  //-------------
-
-  // const { keplr } = window;
-  // if (!keplr) throw new Error("You need to install Keplr");
-
-  // const chainInfo = getNetworkChainInfo(Network.Testnet);
-  // const endPoints = getNetworkEndpoints(Network.Testnet);
-
-  // await keplr.experimentalSuggestChain({ bech32Config });
-
-  // await _addChainList(wallet, chainRegistry, chainType); // add network to Keplr
-  // await _unlockWalletList(wallet, chainRegistry, chainType); // give permission for the webpage to access Keplr
-  // return wallet;
-
-  //--------------------
 
   const walletStrategyArguments: WalletStrategyArguments = {
     wallet: Wallet.Keplr,

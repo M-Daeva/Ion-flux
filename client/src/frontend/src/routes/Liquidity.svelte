@@ -2,14 +2,12 @@
   import { l } from "../../../common/utils";
   import { get } from "svelte/store";
   import { displayModal, getImageUrl } from "../services/helpers";
-  // Error: block height: 32392254, timeout height: 10926748: tx timeout height
-  //import { init } from "../../../common/workers/testnet-simple";
-  // Error: signature verification failed; please verify account number (30476) and chain-id (injective-1): unauthorized
   import { init } from "../../../common/workers/testnet-strat";
   import {
     tokenInfoList,
     addrToSymbol,
     symbolToAddr,
+    trimDecimal,
   } from "../../../common/helpers/general";
   import {
     contractProvidersStorage,
@@ -33,6 +31,7 @@
   }[] = [];
   let currentRewardsSymbol = "";
   let currentRewardsSwapOutSymbol = "";
+  let cw20Balances: [string, number][] = [];
 
   let rewardsCostList: [string, number][] = [];
   let currentRewardsCost =
@@ -80,7 +79,8 @@
 
   // update symbols
   contractCw20BalancesStorage.subscribe((value) => {
-    currentRewardsSymbol = get(contractCw20BalancesStorage)?.[0]?.[0] || "";
+    cw20Balances = value;
+    currentRewardsSymbol = value?.[0]?.[0] || "";
     currentRewardsSwapOutSymbol = currentRewardsSymbol;
   });
 
@@ -188,7 +188,7 @@
       <div>
         <button
           class="btn btn-secondary m-0 w-28 mb-5"
-          on:click={() => deposit("ATOM", 100 * 1e6)}>Claim</button
+          on:click={() => deposit("ATOM", 5 * 1e6)}>Claim</button
         >
       </div>
       <div class="flex flex-row">
@@ -202,7 +202,7 @@
           class="w-28 m-0 bg-stone-700"
           bind:value={currentRewardsSwapOutSymbol}
         >
-          {#each get(contractCw20BalancesStorage) as [tokenSymbol, _]}
+          {#each cw20Balances as [tokenSymbol, _]}
             <option value={tokenSymbol}>
               {tokenSymbol}
             </option>
@@ -355,7 +355,7 @@
             >
             <td
               class="flex justify-center items-center w-2/12 bg-inherit border-b-0"
-              >{weight}</td
+              >{trimDecimal(weight)}</td
             >
             <td
               class="flex justify-center items-center w-2/12 bg-inherit border-b-0"

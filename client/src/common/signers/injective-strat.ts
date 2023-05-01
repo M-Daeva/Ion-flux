@@ -78,8 +78,7 @@ async function composeTxWithKeplr(
     pubKey: pubkey,
     chainId: ChainId.Testnet,
     message: messages,
-    // sequence: baseAccount.sequence,
-    sequence: 0,
+    sequence: baseAccount.sequence,
     // timeoutHeight: timeoutHeight.toNumber(),
     accountNumber: baseAccount.accountNumber,
   };

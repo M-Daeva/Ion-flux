@@ -41,10 +41,10 @@ async function main() {
     cwTransfer,
     cwInitTokens,
     cwQueryCw20Balances,
-  } = await init(await getSeed(SEED_ALICE));
+  } = await init(await getSeed(SEED_DAPP));
 
-  // await cwQueryConfig();
-  // await cwUpdateConfig({ swapFeeRate: 0.003 });
+  l(await cwQueryConfig());
+  l(await cwUpdateConfig({ priceAge: 8000000 }));
   // await cwQueryConfig();
 
   // l(
@@ -61,7 +61,7 @@ async function main() {
 
   //l(await cwQueryCw20Balances(owner));
 
-  // await cwQueryPrices();
+  l(await cwQueryPrices());
   // await cwInitTokens();
   // await cwQueryPrices();
 }

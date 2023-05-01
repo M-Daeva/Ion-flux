@@ -10,7 +10,7 @@
   import { get } from "svelte/store";
   import { baseURL } from "../config";
   import { init } from "../../../common/workers/testnet-frontend-workers";
-  import { tokenInfoList } from "../../../common/helpers/general";
+  import { tokenInfoList, symbolToAddr } from "../../../common/helpers/general";
 
   let req = createRequest({ baseURL: baseURL + "/api" });
 
@@ -25,9 +25,7 @@
         "/transfer-tokens",
         {
           recipient,
-          tokenAddr: tokenInfoList.find(
-            ([tokenAddr, symbol, priceFeedStr]) => symbol === currentSymbol
-          )[0],
+          tokenAddr: symbolToAddr(currentSymbol),
         }
       );
 
@@ -42,7 +40,7 @@
 
   contractCw20BalancesStorage.subscribe((value) => {
     cw20Balances = value;
-    currentSymbol = get(contractCw20BalancesStorage)?.[0]?.[0] || "";
+    currentSymbol = value?.[0]?.[0] || "";
   });
 </script>
 
@@ -56,7 +54,7 @@
       class="w-28 m-0 bg-stone-700"
       bind:value={currentSymbol}
     >
-      {#each get(contractCw20BalancesStorage) as [tokenSymbol, _]}
+      {#each cw20Balances as [tokenSymbol, _]}
         <option value={tokenSymbol}>
           {tokenSymbol}
         </option>
