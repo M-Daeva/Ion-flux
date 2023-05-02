@@ -11,15 +11,21 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@bangjelkoski/node-stdlib-browser": "^0.0.1",
     "@cosmjs/cosmwasm-stargate": "^0.29.3",
     "@cosmjs/stargate": "^0.29.3",
-    "chart.js": "^3.9.1",
+    "@injectivelabs/networks": "^1.10.12",
+    "@injectivelabs/sdk-ts": "^1.10.72",
+    "@injectivelabs/ts-types": "^1.10.12",
+    "@injectivelabs/utils": "^1.10.12",
+    "@injectivelabs/wallet-ts": "^1.10.82",
+    "buffer": "^6.0.3",
     "cosmjs-types": "^0.5.2",
     "decimal.js": "^10.4.2",
-    "svelte-chartjs": "^3.0.1",
     "svelte-navigator": "^3.2.2"
   },
   "devDependencies": {
+    "@bangjelkoski/vite-plugin-node-polyfills": "^0.0.2",
     "@keplr-wallet/types": "^0.8.8",
     "@sveltejs/vite-plugin-svelte": "^1.1.0",
     "@tsconfig/svelte": "^3.0.0",

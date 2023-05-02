@@ -5,4 +5,7 @@ import { nodePolyfills } from "@bangjelkoski/vite-plugin-node-polyfills";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [svelte(), nodePolyfills({ protocolImports: true }) as any],
+  resolve: {
+    preserveSymlinks: true,
+  },
 });

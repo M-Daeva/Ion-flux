@@ -1,15 +1,18 @@
-import { l } from "../utils";
-import { tokenAddrToSymbolList } from "./general";
-import { initWithKeplr } from "../signers/injective-strat";
-import { getCwClient } from "../signers";
-import { CONTRACT_ADDRESS } from "../config/testnet-config.json";
+import { l } from "../../../common/utils";
+import { tokenAddrToSymbolList } from "../../../common/helpers/general";
+import { initWithKeplr } from "./injective-strat";
+import { getCwClient } from "../../../common/signers";
+import { CONTRACT_ADDRESS } from "../../../common/config/testnet-config.json";
 import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import type { UpdateConfigStruct, ClientStructWithKeplr } from "./interfaces";
-import { IonFluxClient as Client } from "../codegen/IonFlux.client";
-import { IonFluxMessageComposer as MessageComposer } from "../codegen/IonFlux.message-composer";
+import type {
+  UpdateConfigStruct,
+  ClientStructWithKeplr,
+} from "../../../common/helpers/interfaces";
+import { IonFluxClient as Client } from "../../../common/codegen/IonFlux.client";
+import { IonFluxMessageComposer as MessageComposer } from "../../../common/codegen/IonFlux.message-composer";
 import type { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
-import TOKENS from "../config/tokens.json";
+import TOKENS from "../../../common/config/tokens.json";
 import { WalletStrategy } from "@injectivelabs/wallet-ts";
 import { toBase64 } from "@injectivelabs/sdk-ts";
 

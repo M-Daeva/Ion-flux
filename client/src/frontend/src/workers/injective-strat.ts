@@ -1,4 +1,4 @@
-import { l } from "../utils";
+import { l } from "../../../common/utils";
 import { fromUtf8 } from "@cosmjs/encoding";
 import { calculateFee as _calculateFee, GasPrice } from "@cosmjs/stargate";
 import { type MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";

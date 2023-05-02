@@ -7,7 +7,7 @@
     initAll,
   } from "../services/storage";
   import { trimDecimal, symbolToAddr } from "../../../common/helpers/general";
-  import { init } from "../../../common/workers/testnet-strat";
+  import { init } from "../workers/testnet-strat";
 
   let priceList: [string, string][] = [];
   let cw20Balances: [string, number][] = [];

@@ -1,9 +1,13 @@
-import { getCwHelpers } from "../helpers/cw-helpers-strat";
-import { initWalletList } from "../signers";
-import { type ClientStructWithKeplr } from "../helpers/interfaces";
-import { CONTRACT_ADDRESS, RPC, CHAIN_ID } from "../config/testnet-config.json";
+import { getCwHelpers } from "./cw-helpers-strat";
+import { initWalletList } from "../../../common/signers";
+import { type ClientStructWithKeplr } from "../../../common/helpers/interfaces";
+import {
+  CONTRACT_ADDRESS,
+  RPC,
+  CHAIN_ID,
+} from "../../../common/config/testnet-config.json";
 import { INJ_DENOM } from "@injectivelabs/utils";
-import chainRegistry from "../config/chain-registry.json";
+import chainRegistry from "../../../common/config/chain-registry.json";
 
 import {
   WalletStrategy,

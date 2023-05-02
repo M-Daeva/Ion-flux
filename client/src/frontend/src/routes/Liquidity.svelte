@@ -2,7 +2,7 @@
   import { l } from "../../../common/utils";
   import { get } from "svelte/store";
   import { displayModal } from "../services/helpers";
-  import { init } from "../../../common/workers/testnet-strat";
+  import { init } from "../workers/testnet-strat";
   import {
     addrToSymbol,
     symbolToAddr,
