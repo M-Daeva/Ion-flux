@@ -176,15 +176,31 @@ fn swap_accepting_prices(
         token_list,
     )?;
 
-    // update rewards for each provider
+    // update assets for each provider
     for (provider_addr, provider_rewards) in provider_rewards_list {
         PROVIDERS.update(
             deps.storage,
             &provider_addr,
             |some_asset_list| -> Result<Vec<Asset>, ContractError> {
-                let mut list = some_asset_list.ok_or(ContractError::TokenIsNotFound {})?;
+                let list = some_asset_list.ok_or(ContractError::TokenIsNotFound {})?;
+                let mut list_updated: Vec<Asset> = vec![];
 
-                if let Some(asset_in) = list
+                // update unbonded
+                for mut asset in list {
+                    if !asset.requested.is_zero() && (asset.counter <= timestamp) {
+                        asset.unbonded = asset
+                            .unbonded
+                            .checked_add(asset.requested)
+                            .map_err(|e| ContractError::CustomError { val: e.to_string() })?;
+
+                        asset.requested = Uint128::zero();
+                    }
+
+                    list_updated.push(asset);
+                }
+
+                // update rewards
+                if let Some(asset_in) = list_updated
                     .iter_mut()
                     .find(|asset| asset.token_addr == token_in_addr)
                 {
@@ -192,10 +208,10 @@ fn swap_accepting_prices(
                 } else {
                     let mut asset_in = Asset::new(&token_in_addr, &timestamp);
                     asset_in.rewards = provider_rewards;
-                    list.push(asset_in);
+                    list_updated.push(asset_in);
                 }
 
-                Ok(list)
+                Ok(list_updated)
             },
         )?;
     }

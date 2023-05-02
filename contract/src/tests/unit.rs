@@ -712,7 +712,77 @@ fn swap_same_tokens() {
     prj.swap(ADDR_BOB_INJ, amount_in, &token, &token).unwrap();
 }
 
-// TODO: add more claim tests
+#[test]
+fn swap_updates_unbonded() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(
+        ADDR_ALICE_INJ,
+        &token,
+        mint_amount.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.deposit(
+        ADDR_ALICE_INJ,
+        &token2,
+        mint_amount.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // unbond x/2 of ATOM total liquidity
+    prj.unbond(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait(UNBONDING_PERIOD as u64);
+
+    let requested = prj.query_providers(vec![ADDR_BOB_INJ]).unwrap()[0].1[0].requested;
+
+    // make some swaps to create trading volume
+    // swap x/20 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_ALICE_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+
+    let unbonded = prj.query_providers(vec![ADDR_BOB_INJ]).unwrap()[0].1[0].unbonded;
+
+    assert_eq!(requested, unbonded);
+}
+
 #[test]
 fn claim_default() {
     let mint_amount = Cw20Coin {
@@ -759,6 +829,35 @@ fn claim_default() {
 }
 
 #[test]
+#[should_panic(expected = "There is nothing to claim!")]
+fn claim_no_rewards() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    prj.claim(ADDR_ALICE_INJ).unwrap();
+}
+
+#[test]
 fn swap_and_claim_default() {
     let mint_amount = Cw20Coin {
         address: ADDR_ALICE_INJ.to_string(),
@@ -802,6 +901,35 @@ fn swap_and_claim_default() {
 }
 
 #[test]
+#[should_panic(expected = "There is nothing to claim!")]
+fn swap_and_claim_no_rewards() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(100_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+
+    prj.swap_and_claim(ADDR_ALICE_INJ, &token2).unwrap();
+}
+
+#[test]
 fn query_config_default() {
     let (prj, ..) = default_init();
 
@@ -817,7 +945,6 @@ fn query_config_default() {
     );
 }
 
-// TODO: add more tokens_weight tests
 #[test]
 fn query_tokens_weight_zero_volume() {
     let (prj, ..) = default_init();
@@ -828,7 +955,343 @@ fn query_tokens_weight_zero_volume() {
     );
 }
 
-// TODO: add more liquidity tests
+#[test]
+fn tokens_weight_decreases_on_swap_in() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
+
+    // swap x/2 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(2u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x/4 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(4u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res2 = prj.query_tokens_weight(vec![]).unwrap();
+
+    // as ATOM liquidity increases then its weight decreases
+    assert!(res2[0] < res[0]);
+}
+
+#[test]
+fn tokens_weight_increases_on_swap_out() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
+
+    // swap x/4 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(4u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x/2 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(2u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res2 = prj.query_tokens_weight(vec![]).unwrap();
+
+    // as ATOM liquidity decreases then its weight increases
+    assert!(res2[0] > res[0]);
+}
+
+#[test]
+fn tokens_weight_decreases_on_deposit() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
+
+    // make some swaps to create trading volume
+    // swap x/20 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x/20 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res2 = prj.query_tokens_weight(vec![]).unwrap();
+
+    // as ATOM liquidity increases then its weight decreases
+    assert!(res2[0] < res[0]);
+}
+
+#[test]
+fn tokens_weight_increases_on_unbond() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
+
+    // make some swaps to create trading volume
+    // swap x/20 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x/20 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // unbond x/2 of ATOM total liquidity
+    prj.unbond(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res2 = prj.query_tokens_weight(vec![]).unwrap();
+
+    // as ATOM liquidity decreases then its weight increases
+    assert!(res2[0] > res[0]);
+}
+
+#[test]
+fn tokens_weight_doesnt_change_on_withdraw() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // make some swaps to create trading volume
+    // swap x/20 of ATOM total liquidity to LUNA
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token,
+        &token2,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x/20 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(20u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // unbond x/2 of ATOM total liquidity
+    prj.unbond(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
+
+    // unbond x/2 of ATOM total liquidity
+    prj.withdraw(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res2 = prj.query_tokens_weight(vec![]).unwrap();
+
+    // as ATOM liquidity doesn't change then its weight will be the same
+    assert_eq!(res2[0], res[0]);
+}
+
 #[test]
 fn query_liquidity_default() {
     let (mut prj, token, mint_amount) = default_init();
@@ -853,6 +1316,137 @@ fn query_liquidity_default() {
         prj.query_liquidity(vec![]).unwrap()[0].1,
         Uint128::from(4u128) * mint_amount.amount / Uint128::from(5u128)
     );
+}
+
+#[test]
+fn liquidity_manipulations() {
+    let mint_amount = Cw20Coin {
+        address: ADDR_ALICE_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mint_amount2 = Cw20Coin {
+        address: ADDR_BOB_INJ.to_string(),
+        amount: Uint128::from(20_000u128),
+    };
+
+    let mut prj = Project::new(None);
+
+    let token = prj.create_cw20(SYMBOL_ATOM, vec![mint_amount.clone(), mint_amount2.clone()]);
+    let token2 = prj.create_cw20(SYMBOL_LUNA, vec![mint_amount.clone(), mint_amount2.clone()]);
+
+    prj.update_token(ADDR_ADMIN_INJ, &token, SYMBOL_ATOM, PRICE_FEED_ID_STR_ATOM)
+        .unwrap();
+    prj.update_token(ADDR_ADMIN_INJ, &token2, SYMBOL_LUNA, PRICE_FEED_ID_STR_LUNA)
+        .unwrap();
+
+    prj.deposit(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.deposit(ADDR_ALICE_INJ, &token2, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // swap x of LUNA total liquidity to ATOM
+    prj.swap(ADDR_BOB_INJ, mint_amount2.amount, &token2, &token)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // unbond x/2 of ATOM total liquidity
+    prj.unbond(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD) as u64);
+
+    // withdraw x/2 of ATOM total liquidity
+    prj.withdraw(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // deposit x/2 of ATOM total liquidity
+    prj.deposit(
+        ADDR_BOB_INJ,
+        &token,
+        mint_amount2.amount / Uint128::from(2u128),
+    )
+    .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    // unbond x of ATOM total liquidity
+    prj.unbond(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD) as u64);
+
+    // withdraw x/2 of ATOM total liquidity
+    prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
+        .unwrap();
+    prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let balances = prj.query_balances(vec![]).unwrap();
+    let liquidity = prj.query_liquidity(vec![]).unwrap();
+    let providers = prj.query_providers(vec![]).unwrap();
+
+    let balance_atom = balances
+        .iter()
+        .find(|x| x.token_addr == token)
+        .unwrap()
+        .amount;
+    let balance_luna = balances
+        .iter()
+        .find(|x| x.token_addr == token2)
+        .unwrap()
+        .amount;
+
+    let liquidity_atom = liquidity
+        .iter()
+        .find(|(addr, _val)| addr == &token)
+        .unwrap()
+        .1;
+    let liquidity_luna = liquidity
+        .iter()
+        .find(|(addr, _val)| addr == &token2)
+        .unwrap()
+        .1;
+
+    let rewards_atom = providers.iter().fold(Uint128::zero(), |acc, cur| {
+        let (_addr, asset_list) = cur;
+
+        let rewards = match asset_list.iter().find(|x| x.token_addr == token) {
+            Some(y) => y.rewards,
+            _ => Uint128::zero(),
+        };
+
+        acc + rewards
+    });
+
+    let rewards_luna = providers.iter().fold(Uint128::zero(), |acc, cur| {
+        let (_addr, asset_list) = cur;
+
+        let rewards = match asset_list.iter().find(|x| x.token_addr == token2) {
+            Some(y) => y.rewards,
+            _ => Uint128::zero(),
+        };
+
+        acc + rewards
+    });
+
+    assert_eq!(balance_atom - rewards_atom, liquidity_atom);
+    assert_eq!(balance_luna - rewards_luna, liquidity_luna);
 }
 
 #[test]

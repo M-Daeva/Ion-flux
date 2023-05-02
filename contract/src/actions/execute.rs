@@ -353,6 +353,10 @@ pub fn claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, Con
         });
     }
 
+    if msgs.is_empty() {
+        Err(ContractError::NothingToClaim {})?;
+    }
+
     PROVIDERS.save(deps.storage, &provider_addr, &provider_updated)?;
 
     Ok(Response::new()
@@ -448,6 +452,10 @@ fn swap_and_claim_accepting_prices(
             rewards,
             ..asset.to_owned()
         });
+    }
+
+    if token_out_cost.is_zero() {
+        Err(ContractError::NothingToClaim {})?;
     }
 
     PROVIDERS.save(deps.storage, &provider_addr, &provider_updated)?;

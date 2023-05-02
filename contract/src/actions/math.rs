@@ -210,7 +210,7 @@ pub fn calc_volume_ratio(
     swapped_out: Uint128,
     swap_fee_rate: Decimal,
 ) -> StdResult<Decimal> {
-    const MAX_RATIO: u128 = 100;
+    const MAX_RATIO: u128 = 1_000_000;
 
     let max_ratio = u128_to_dec(MAX_RATIO);
     let one = Decimal::one();
@@ -796,7 +796,7 @@ pub mod test {
 
         let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
-        let volume_ratio = str_to_dec("0.01");
+        let volume_ratio = str_to_dec("0.000001");
 
         assert_eq!(res.unwrap(), volume_ratio);
     }
@@ -811,7 +811,7 @@ pub mod test {
 
         let res = calc_volume_ratio(bonded, requested, swapped_in, swapped_out, swap_fee_rate);
 
-        let volume_ratio = str_to_dec("100");
+        let volume_ratio = str_to_dec("1000000");
 
         assert_eq!(res.unwrap(), volume_ratio);
     }

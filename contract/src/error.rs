@@ -35,12 +35,6 @@ pub enum ContractError {
     #[error("Token is not included in token list!")]
     TokenIsNotFound {},
 
-    #[error("Non equal vectors")]
-    NonEqualVectors {},
-
-    #[error("Empty vector")]
-    EmptyVector {},
-
     #[error("Sender does not have access permissions!")]
     Unauthorized {},
 
@@ -52,4 +46,7 @@ pub enum ContractError {
 
     #[error("Can not swap same tokens!")]
     SameTokens {},
+
+    #[error("There is nothing to claim!")]
+    NothingToClaim {},
 }
