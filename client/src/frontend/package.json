@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build:dev": "vite build --mode development",
-    "build:prod": "vite build",
+    "build:prod": "node --max_old_space_size=16384 ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
@@ -23,7 +23,6 @@
     "@keplr-wallet/types": "^0.8.8",
     "@sveltejs/vite-plugin-svelte": "^1.1.0",
     "@tsconfig/svelte": "^3.0.0",
-    "@types/chart.js": "^2.9.37",
     "autoprefixer": "^10.4.13",
     "daisyui": "^2.38.1",
     "postcss": "^8.4.18",
