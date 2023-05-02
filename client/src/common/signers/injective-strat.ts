@@ -165,7 +165,7 @@ function getExecuteContractMsg(
 async function initWithKeplr(
   contractAddress: string,
   walletStrategy: WalletStrategy,
-  margin: number = 1.8,
+  margin: number = 2,
   gasPrice: string | GasPrice = `${DEFAULT_GAS_PRICE}${INJ_DENOM}`
 ) {
   const injectiveAddress: string = (await walletStrategy.getAddresses())[0];
