@@ -47,29 +47,35 @@
 <div
   class="flex flex-col justify-center sm:flex-row sm:justify-between px-4 pb-4"
 >
-  <div class="w-full sm:w-4/12 flex justify-center items-center flex-col">
-    <label for="symbol-selector" class="mr-2">Select Token</label>
-    <select
-      id="symbol-selector"
-      class="w-28 m-0 bg-stone-700"
-      bind:value={currentSymbol}
+  <div class="w-full sm:w-4/12">
+    <h2 class="text-center mb-3 text-lg">Faucet</h2>
+    <div
+      class="p-5 flex flex-col w-52 justify-center items-center mx-auto"
+      style="background-color: rgba(0, 200, 180, 0.1);"
     >
-      {#each cw20Balances as [tokenSymbol, _]}
-        <option value={tokenSymbol}>
-          {tokenSymbol}
-        </option>
-      {/each}
-    </select>
+      <label for="symbol-selector" class="mr-2">Select Token</label>
+      <select
+        id="symbol-selector"
+        class="w-28 m-0 mt-2 bg-stone-700"
+        bind:value={currentSymbol}
+      >
+        {#each cw20Balances as [tokenSymbol, _]}
+          <option value={tokenSymbol}>
+            {tokenSymbol}
+          </option>
+        {/each}
+      </select>
 
-    <button class="btn btn-secondary mt-10 w-28" on:click={requestTokens}
-      >Get Token</button
-    >
+      <button class="btn btn-secondary mt-10 w-28" on:click={requestTokens}
+        >Get Token</button
+      >
+    </div>
   </div>
 
   <div class="mt-3 sm:mt-0 w-full sm:w-7/12 overflow-x-auto">
     <h2 class="text-center mb-3 text-lg">Balances</h2>
 
-    <table class="table table-compact w-full overflow-x-scroll">
+    <table class="table table-compact w-80 mx-auto overflow-x-scroll">
       <thead class="bg-black flex text-white w-full">
         <tr class="flex justify-between w-full mb-1 pr-6">
           <th class="bg-black py-4 w-24 text-center">Token</th>

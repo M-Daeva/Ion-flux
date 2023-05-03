@@ -217,7 +217,7 @@ async function getCwHelpers(seed: string) {
 
   async function cwInitTokens() {
     for (const [tokenAddr, symbol, priceFeedIdStr] of tokenInfoList) {
-      await cwUpdateToken(tokenAddr, symbol, priceFeedIdStr);
+      l(await cwUpdateToken(tokenAddr, symbol, priceFeedIdStr));
     }
   }
 

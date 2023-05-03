@@ -191,11 +191,11 @@
   <!-- Rewards -->
   <h2 class="text-xl">Rewards</h2>
   <div
-    class="flex flex-row justify-around items-center py-5 sm:py-2 text-amber-200 font-medium my-2"
-    style="background-color: rgb(42 48 60);"
+    class="flex flex-col sm:flex-row justify-around items-center pt-2 pb-4 text-amber-200 font-medium my-2"
+    style="background-color: rgba(0, 200, 180, 0.1);"
   >
-    <div class="flex flex-col">
-      <div class="flex flex-row justify-start mt-5">
+    <div class="flex flex-col justify-start">
+      <div class="flex flex-row justify-start mt-2 sm:mt-5">
         <select
           id="symbol-selector"
           class="w-28 m-0 bg-stone-700"
@@ -211,15 +211,13 @@
         <span class="mx-1 my-auto">{trimDecimal(`${currentRewards}`)}</span>
       </div>
 
-      <div class="flex flex-row align-middle self-center justify-center mt-5">
-        <p class="text-center">
-          Sum in USD:
-          <span class="mx-1 my-auto">{trimDecimal(`${totalRewardsCost}`)}</span>
-        </p>
+      <div class="mt-5">
+        <span class="text-start">Sum in USD:</span>
+        <span class="mx-1 my-auto">{trimDecimal(`${totalRewardsCost}`)}</span>
       </div>
     </div>
 
-    <div class="flex flex-col">
+    <div class="flex flex-col mt-5 sm:mt-0">
       <div>
         <button class="btn btn-secondary m-0 w-28 mb-5" on:click={claim}
           >Claim</button
@@ -247,7 +245,7 @@
 
   <!-- My pools -->
   <h2 class="text-xl mt-5">My Pools</h2>
-  <div class="w-full overflow-x-auto mt-1">
+  <div class="w-full overflow-x-auto mt-2">
     <table class="table table-compact w-full overflow-x-scroll">
       <thead class="bg-black flex text-white w-full">
         <tr class="flex w-full mb-1 justify-around">
@@ -347,7 +345,7 @@
 
   <!-- All pools -->
   <h2 class="text-xl mt-5">All Pools</h2>
-  <div class="w-full overflow-x-auto mt-1">
+  <div class="w-full overflow-x-auto mt-2">
     <table class="table table-compact w-full overflow-x-scroll">
       <thead class="bg-black flex text-white w-full">
         <tr class="flex w-full mb-1 justify-around">
@@ -408,7 +406,7 @@
               class="flex justify-around content-center w-2/12 bg-opacity-90 bg-slate-800 border-b-0"
             >
               <button
-                class="btn btn-secondary m-0"
+                class="btn btn-secondary m-0 w-28"
                 on:click={() => {
                   const asset = providerToDisplay.find(
                     (item) => item.token_addr === token_addr

@@ -61,10 +61,10 @@
 
 <div class="flex flex-col px-4 -mt-3 pb-4">
   <div
-    class="flex flex-row justify-around items-center mt-10 w-4/12 mx-auto py-5 sm:py-2 text-amber-200 font-medium my-2"
-    style="background-color: rgb(42 48 60);"
+    class="flex flex-row justify-around items-center mt-10 min-w-4/12 mx-auto px-5 py-2 text-amber-200 font-medium my-2"
+    style="background-color: rgba(0, 200, 180, 0.1);"
   >
-    <div class="flex flex-row py-5 justify-around w-9/12">
+    <div class="flex flex-row py-5 justify-around">
       <select
         id="symbol-selector"
         class="w-28 mx-0 bg-stone-700 my-auto"
@@ -91,10 +91,10 @@
   </div>
 
   <div
-    class="flex flex-col justify-around items-center w-4/12 mx-auto py-5 sm:py-2 text-amber-200 font-medium my-2"
-    style="background-color: rgb(42 48 60);"
+    class="flex flex-col justify-around items-center min-w-4/12 mx-auto px-5 py-2 text-amber-200 font-medium my-2"
+    style="background-color: rgba(0, 200, 180, 0.1);"
   >
-    <div class="flex flex-row py-5 justify-around w-9/12">
+    <div class="flex flex-row py-5 justify-around">
       <select
         id="symbol-selector"
         class="w-28 mx-0 bg-stone-700 my-auto"
