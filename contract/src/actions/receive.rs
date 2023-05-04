@@ -114,6 +114,9 @@ pub fn swap(
     amount_in: Uint128,
     token_out_addr: String,
 ) -> Result<Response, ContractError> {
+    let token_in_addr = info.sender.clone();
+    let token_out_addr = deps.api.addr_validate(&token_out_addr)?;
+
     let price_list = if env.block.chain_id != CONFIG.load(deps.storage)?.get_chain_id() {
         query_prices(deps.as_ref(), env.clone(), vec![])
     } else {
@@ -121,7 +124,15 @@ pub fn swap(
     }
     .map_err(|_| ContractError::NoPrices {})?;
 
-    let (token_in_price, token_out_price) = (price_list[0].1, price_list[1].1);
+    let (_, token_in_price) = price_list
+        .iter()
+        .find(|(addr, _price)| addr == &token_in_addr)
+        .ok_or(ContractError::TokenIsNotFound {})?;
+
+    let (_, token_out_price) = price_list
+        .iter()
+        .find(|(addr, _price)| addr == &token_out_addr)
+        .ok_or(ContractError::TokenIsNotFound {})?;
 
     swap_accepting_prices(
         deps,
@@ -129,9 +140,9 @@ pub fn swap(
         info,
         sender,
         amount_in,
-        token_out_addr,
-        token_in_price,
-        token_out_price,
+        token_out_addr.to_string(),
+        *token_in_price,
+        *token_out_price,
     )
 }
 

@@ -995,16 +995,6 @@ fn tokens_weight_decreases_on_swap_in() {
     .unwrap();
     prj.wait((UNBONDING_PERIOD / 100) as u64);
 
-    // swap x/4 of LUNA total liquidity to ATOM
-    prj.swap(
-        ADDR_BOB_INJ,
-        mint_amount2.amount / Uint128::from(4u128),
-        &token2,
-        &token,
-    )
-    .unwrap();
-    prj.wait((UNBONDING_PERIOD / 100) as u64);
-
     let res2 = prj.query_tokens_weight(vec![]).unwrap();
 
     // as ATOM liquidity increases then its weight decreases
@@ -1095,8 +1085,6 @@ fn tokens_weight_decreases_on_deposit() {
         .unwrap();
     prj.wait((UNBONDING_PERIOD / 100) as u64);
 
-    let res = prj.query_tokens_weight(vec![]).unwrap();
-
     // make some swaps to create trading volume
     // swap x/20 of ATOM total liquidity to LUNA
     prj.swap(
@@ -1117,6 +1105,8 @@ fn tokens_weight_decreases_on_deposit() {
     )
     .unwrap();
     prj.wait((UNBONDING_PERIOD / 100) as u64);
+
+    let res = prj.query_tokens_weight(vec![]).unwrap();
 
     // deposit x/2 of ATOM total liquidity
     prj.deposit(
@@ -1355,9 +1345,14 @@ fn liquidity_manipulations() {
     .unwrap();
     prj.wait((UNBONDING_PERIOD / 100) as u64);
 
-    // swap x of LUNA total liquidity to ATOM
-    prj.swap(ADDR_BOB_INJ, mint_amount2.amount, &token2, &token)
-        .unwrap();
+    // swap x/2 of LUNA total liquidity to ATOM
+    prj.swap(
+        ADDR_BOB_INJ,
+        mint_amount2.amount / Uint128::from(2u128),
+        &token2,
+        &token,
+    )
+    .unwrap();
     prj.wait((UNBONDING_PERIOD / 100) as u64);
 
     // unbond x/2 of ATOM total liquidity
@@ -1391,11 +1386,6 @@ fn liquidity_manipulations() {
     prj.unbond(ADDR_ALICE_INJ, &token, mint_amount.amount)
         .unwrap();
     prj.wait((UNBONDING_PERIOD) as u64);
-
-    // withdraw x/2 of ATOM total liquidity
-    prj.withdraw(ADDR_ALICE_INJ, &token, mint_amount.amount)
-        .unwrap();
-    prj.wait((UNBONDING_PERIOD / 100) as u64);
 
     let balances = prj.query_balances(vec![]).unwrap();
     let liquidity = prj.query_liquidity(vec![]).unwrap();

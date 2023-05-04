@@ -1,5 +1,5 @@
 APP_NAME="ion-flux-client-testnet"
-VERSION="1.0.10"
+VERSION="1.0.11"
 ACCOUNT_NAME="mdaeva"
 
 IMAGE_NAME=$APP_NAME
