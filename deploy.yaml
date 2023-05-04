@@ -3,7 +3,7 @@ version: "2.0"
 
 services:
   dapp:
-    image: mdaeva/ion-flux-client-testnet:1.0.11
+    image: mdaeva/ion-flux-client-testnet:1.0.12
     expose:
       - port: 4000
         as: 80

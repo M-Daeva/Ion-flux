@@ -1,5 +1,5 @@
 APP_NAME="ion-flux-client-testnet"
-VERSION="1.0.11"
+VERSION="1.0.12"
 ACCOUNT_NAME="mdaeva"
 
 INTERNAL_PORT=4000
